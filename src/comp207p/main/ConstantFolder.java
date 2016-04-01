@@ -122,6 +122,8 @@ public class ConstantFolder {
             instList.insert(operand1, new PUSH(cpgen, (int)a * (int)b));
         } else if (opName.equals("idiv")) {
             instList.insert(operand1, new PUSH(cpgen, (int)a / (int)b));
+        } else if (opName.equals("irem")) {
+            instList.insert(operand1, new PUSH(cpgen, (int)a % (int)b));
 
         // Long operations
 
@@ -133,6 +135,8 @@ public class ConstantFolder {
             instList.insert(operand1, new PUSH(cpgen, (long)a * (long)b));
         } else if (opName.equals("ldiv")) {
             instList.insert(operand1, new PUSH(cpgen, (long)a / (long)b));
+        } else if (opName.equals("lrem")) {
+            instList.insert(operand1, new PUSH(cpgen, (long)a % (long)b));
 
         // Float operations
 
@@ -144,6 +148,8 @@ public class ConstantFolder {
             instList.insert(operand1, new PUSH(cpgen, (float)a * (float)b));
         } else if (opName.equals("fdiv")) {
             instList.insert(operand1, new PUSH(cpgen, (float)a / (float)b));
+        } else if (opName.equals("frem")) {
+            instList.insert(operand1, new PUSH(cpgen, (float)a % (float)b));
 
         // Double operations
 
@@ -155,6 +161,8 @@ public class ConstantFolder {
             instList.insert(operand1, new PUSH(cpgen, (double)a * (double)b));
         } else if (opName.equals("ddiv")) {
             instList.insert(operand1, new PUSH(cpgen, (double)a / (double)b));
+        } else if (opName.equals("drem")) {
+            instList.insert(operand1, new PUSH(cpgen, (double)a % (double)b));
 
         } else {
             // reached when instruction is not handled, e.g. bitwise operators or shifts.
