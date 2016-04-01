@@ -34,6 +34,16 @@
 	return
 .end method
 
+.method public ldcNeg()V
+	.limit stack 2
+
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	ldc -67
+    ineg
+    invokevirtual java/io/PrintStream/println(I)V
+	return
+.end method
+
 .method public ldcSub()V
 	.limit stack 3
 

@@ -34,6 +34,12 @@ public class SimpleFoldingTest {
     }
 
     @Test
+    public void testLdcNeg(){
+        sf.ldcNeg();
+        assertEquals("67\n", outContent.toString());
+    }
+
+    @Test
     public void testLdcSub(){
         sf.ldcSub();
         assertEquals("-12278\n", outContent.toString());
