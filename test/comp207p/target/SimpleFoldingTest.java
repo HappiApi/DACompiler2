@@ -28,9 +28,51 @@ public class SimpleFoldingTest {
     }
 
     @Test
-    public void testSimple(){
-        sf.simple();
+    public void testLdcAdd(){
+        sf.ldcAdd();
         assertEquals("12412\n", outContent.toString());
+    }
+
+    @Test
+    public void testLdcSub(){
+        sf.ldcSub();
+        assertEquals("-12278\n", outContent.toString());
+    }
+
+    @Test
+    public void testLdcNestedAdd(){
+        sf.ldcNestedAdd();
+        assertEquals("12444\n", outContent.toString());
+    }
+
+    @Test
+    public void testIconstMul(){
+        sf.iconstMul();
+        assertEquals("6\n", outContent.toString());
+    }
+
+    @Test
+    public void testCombinationMulDiv(){
+        sf.combinationMulDiv();
+        assertEquals("90000\n", outContent.toString());
+    }
+
+    @Test
+    public void testFAdd(){
+        sf.fAdd();
+        assertEquals("3.0\n", outContent.toString());
+    }
+
+    @Test
+    public void testLSub(){
+        sf.lSub();
+        assertEquals("19999\n", outContent.toString());
+    }
+
+    @Test
+    public void testDDiv(){
+        sf.dDiv();
+        assertEquals("4.5\n", outContent.toString());
     }
 
 }
