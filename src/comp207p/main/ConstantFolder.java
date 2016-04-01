@@ -33,7 +33,8 @@ public class ConstantFolder {
     JavaClass optimized = null;
 
     String reConstPushInstruction   = "(ConstantPushInstruction|LDC|LDC2_W)"; // LDC_W is a subclass of LDC, so we don't need to include it
-    String reUnaryInstruction  = "(DNEG|FNEG|INEG|LNEG)";
+    String reUnaryInstruction  = "(DNEG|FNEG|INEG|LNEG|" +
+                                  "I2L|I2F|I2D|L2I|L2F|L2D|F2I|F2L|F2D|D2I|D2L|D2F)";
     String reBinaryInstruction = "(DADD|DDIV|DMUL|DREM|DSUB|" +
                                   "FADD|FDIV|FMUL|FREM|FSUB|" +
                                   "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
@@ -126,8 +127,9 @@ public class ConstantFolder {
 
         String opName = operator.getInstruction().getName();
         Object value = getValue(operand.getInstruction(), cpgen);
+        Number number = (Number)value;
 
-        // Integer operations
+        // Negation
 
         if (opName.equals("ineg")) {
             instList.insert(operand, new PUSH(cpgen, -(int)value));
@@ -137,6 +139,26 @@ public class ConstantFolder {
             instList.insert(operand, new PUSH(cpgen, -(float)value));
         } else if (opName.equals("dneg")) {
             instList.insert(operand, new PUSH(cpgen, -(double)value));
+
+        // Type conversion
+
+        } else if (opName.equals("l2i") ||
+                   opName.equals("f2i") ||
+                   opName.equals("d2i")) {
+            instList.insert(operand, new PUSH(cpgen, number.intValue()));
+        } else if (opName.equals("i2l") ||
+                   opName.equals("f2l") ||
+                   opName.equals("d2l")) {
+            instList.insert(operand, new PUSH(cpgen, number.longValue()));
+        } else if (opName.equals("i2f") ||
+                   opName.equals("l2f") ||
+                   opName.equals("d2f")) {
+            instList.insert(operand, new PUSH(cpgen, number.floatValue()));
+        } else if (opName.equals("i2d") ||
+                   opName.equals("l2d") ||
+                   opName.equals("f2d")) {
+            instList.insert(operand, new PUSH(cpgen, number.doubleValue()));
+
         } else {
             // reached when instruction is not handled, e.g. bitwise operators or shifts.
             System.out.println("Couldn't optimise: " + opName);
