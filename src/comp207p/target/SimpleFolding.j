@@ -111,3 +111,13 @@
     invokevirtual java/io/PrintStream/println(D)V
 	return
 .end method
+
+.method public i2d()V
+	.limit stack 3
+
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	sipush 5
+	i2d
+    invokevirtual java/io/PrintStream/println(D)V
+	return
+.end method

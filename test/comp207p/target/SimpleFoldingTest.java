@@ -81,4 +81,9 @@ public class SimpleFoldingTest {
         assertEquals("4.5\n", outContent.toString());
     }
 
+    @Test
+    public void testI2D(){
+        sf.i2d();
+        assertEquals("5.0\n", outContent.toString());
+    }
 }
