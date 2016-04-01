@@ -107,60 +107,58 @@ public class ConstantFolder {
         InstructionHandle operand2 = handles[1];
         InstructionHandle operator = handles[2];
 
-        String operatorName = operator.getInstruction().getName();
-        String type = operatorName.substring(0,1);
-        String operation = operatorName.substring(1);
+        String opName = operator.getInstruction().getName();
 
         Object a = getValue(operand1.getInstruction(), cpgen);
         Object b = getValue(operand2.getInstruction(), cpgen);
 
         // Integer operations
 
-        if (type.equals("i") && operation.equals("add")) {
+        if (opName.equals("iadd")) {
             instList.insert(operand1, new PUSH(cpgen, (int)a + (int)b));
-        } else if (type.equals("i") && operation.equals("sub")) {
+        } else if (opName.equals("isub")) {
             instList.insert(operand1, new PUSH(cpgen, (int)a - (int)b));
-        } else if (type.equals("i") && operation.equals("mul")) {
+        } else if (opName.equals("imul")) {
             instList.insert(operand1, new PUSH(cpgen, (int)a * (int)b));
-        } else if (type.equals("i") && operation.equals("div")) {
+        } else if (opName.equals("idiv")) {
             instList.insert(operand1, new PUSH(cpgen, (int)a / (int)b));
 
         // Long operations
 
-        } else if (type.equals("l") && operation.equals("add")) {
+        } else if (opName.equals("ladd")) {
             instList.insert(operand1, new PUSH(cpgen, (long)a + (long)b));
-        } else if (type.equals("l") && operation.equals("sub")) {
+        } else if (opName.equals("lsub")) {
             instList.insert(operand1, new PUSH(cpgen, (long)a - (long)b));
-        } else if (type.equals("l") && operation.equals("mul")) {
+        } else if (opName.equals("lmul")) {
             instList.insert(operand1, new PUSH(cpgen, (long)a * (long)b));
-        } else if (type.equals("l") && operation.equals("div")) {
+        } else if (opName.equals("ldiv")) {
             instList.insert(operand1, new PUSH(cpgen, (long)a / (long)b));
 
         // Float operations
 
-        } else if (type.equals("f") && operation.equals("add")) {
+        } else if (opName.equals("fadd")) {
             instList.insert(operand1, new PUSH(cpgen, (float)a + (float)b));
-        } else if (type.equals("f") && operation.equals("sub")) {
+        } else if (opName.equals("fsub")) {
             instList.insert(operand1, new PUSH(cpgen, (float)a - (float)b));
-        } else if (type.equals("f") && operation.equals("mul")) {
+        } else if (opName.equals("fmul")) {
             instList.insert(operand1, new PUSH(cpgen, (float)a * (float)b));
-        } else if (type.equals("f") && operation.equals("div")) {
+        } else if (opName.equals("fdiv")) {
             instList.insert(operand1, new PUSH(cpgen, (float)a / (float)b));
 
         // Double operations
 
-        } else if (type.equals("d") && operation.equals("add")) {
+        } else if (opName.equals("dadd")) {
             instList.insert(operand1, new PUSH(cpgen, (double)a + (double)b));
-        } else if (type.equals("d") && operation.equals("sub")) {
+        } else if (opName.equals("dsub")) {
             instList.insert(operand1, new PUSH(cpgen, (double)a - (double)b));
-        } else if (type.equals("d") && operation.equals("mul")) {
+        } else if (opName.equals("dmul")) {
             instList.insert(operand1, new PUSH(cpgen, (double)a * (double)b));
-        } else if (type.equals("d") && operation.equals("div")) {
+        } else if (opName.equals("ddiv")) {
             instList.insert(operand1, new PUSH(cpgen, (double)a / (double)b));
 
         } else {
             // reached when instruction is not handled, e.g. bitwise operators or shifts.
-            System.out.println("Couldn't optimise: type=" + type + " operation=" + operation);
+            System.out.println("Couldn't optimise: " + opName);
             // return is to prevent deleting instructions, since nothing has been added.
             return false;
         }
@@ -174,7 +172,7 @@ public class ConstantFolder {
             e.printStackTrace();
         }
 
-        System.out.println("Optimised: type=" + type + " operation=" + operation);
+        System.out.println("Optimised: " + opName);
 
         return true;
     }
