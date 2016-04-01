@@ -69,13 +69,19 @@ public class ConstantFolder {
 
         // Use InstructionFinder to search for a pattern of instructions
         // (in our case, a constant binary expression)
-        InstructionFinder f = new InstructionFinder(instList);
         String constPush = "(ConstantPushInstruction|LDC|LDC2_W)"; // LDC_W is a subclass of LDC, so we don't need to include it
         String binaryExprPattern = constPush + " " + constPush + " " + "ArithmeticInstruction";
 
-        for (Iterator<?> e = f.search(binaryExprPattern); e.hasNext(); ) {
-            InstructionHandle[] handles = (InstructionHandle[])e.next();
-            this.optimizeConstantBinaryExpr(handles, instList, cpgen);
+        boolean optimizedLastPass = true;
+
+        while (optimizedLastPass) {
+            optimizedLastPass = false;
+            InstructionFinder f = new InstructionFinder(instList);
+            for (Iterator<?> e = f.search(binaryExprPattern); e.hasNext(); ) {
+                InstructionHandle[] handles = (InstructionHandle[])e.next();
+                boolean optimizedThisPass = this.optimizeConstantBinaryExpr(handles, instList, cpgen);
+                optimizedLastPass = optimizedLastPass || optimizedThisPass;
+            }
         }
 
         // setPositions(true) checks whether jump handles
@@ -95,7 +101,7 @@ public class ConstantFolder {
     // Converts binary arithmetic operation to a single constant.
     // `handles` expects the 3 instructions (2 operands + 1 operation) that make up the binary expression.
     // It mutates the instruction list and (if necessary) constant pool.
-    public void optimizeConstantBinaryExpr(InstructionHandle[] handles, InstructionList instList, ConstantPoolGen cpgen) {
+    public boolean optimizeConstantBinaryExpr(InstructionHandle[] handles, InstructionList instList, ConstantPoolGen cpgen) {
 
         InstructionHandle operand1 = handles[0];
         InstructionHandle operand2 = handles[1];
@@ -156,7 +162,7 @@ public class ConstantFolder {
             // reached when instruction is not handled, e.g. bitwise operators or shifts.
             System.out.println("Couldn't optimise: type=" + type + " operation=" + operation);
             // return is to prevent deleting instructions, since nothing has been added.
-            return;
+            return false;
         }
 
         // Delete the 3 instructions making up the expression
@@ -169,6 +175,8 @@ public class ConstantFolder {
         }
 
         System.out.println("Optimised: type=" + type + " operation=" + operation);
+
+        return true;
     }
 
     // Get the value of a ConstantPushInstruction, LDC, or LDC2_W instruction
