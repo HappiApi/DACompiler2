@@ -293,7 +293,7 @@ public class ConstantFolder {
             instList.insert(operand1, new PUSH(cpgen, (double)a % (double)b));
 
         } else {
-            // reached when instruction is not handled, e.g. bitwise operators or shifts.
+            // reached when instruction is not handled
             System.out.println("Couldn't optimise: " + opName);
             // return is to prevent deleting instructions, since nothing has been added.
             return false;
