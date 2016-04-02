@@ -228,6 +228,18 @@ public class ConstantFolder {
             instList.insert(operand1, new PUSH(cpgen, (int)a / (int)b));
         } else if (opName.equals("irem")) {
             instList.insert(operand1, new PUSH(cpgen, (int)a % (int)b));
+        } else if (opName.equals("iand")) {
+            instList.insert(operand1, new PUSH(cpgen, (int)a & (int)b));
+        } else if (opName.equals("ior")) {
+            instList.insert(operand1, new PUSH(cpgen, (int)a | (int)b));
+        } else if (opName.equals("ixor")) {
+            instList.insert(operand1, new PUSH(cpgen, (int)a ^ (int)b));
+        } else if (opName.equals("ishl")) {
+            instList.insert(operand1, new PUSH(cpgen, (int)a << (int)b));
+        } else if (opName.equals("ishr")) {
+            instList.insert(operand1, new PUSH(cpgen, (int)a >> (int)b));
+        } else if (opName.equals("iushr")) {
+            instList.insert(operand1, new PUSH(cpgen, (int)a >>> (int)b));
 
         // Long operations
 
@@ -241,6 +253,18 @@ public class ConstantFolder {
             instList.insert(operand1, new PUSH(cpgen, (long)a / (long)b));
         } else if (opName.equals("lrem")) {
             instList.insert(operand1, new PUSH(cpgen, (long)a % (long)b));
+        } else if (opName.equals("land")) {
+            instList.insert(operand1, new PUSH(cpgen, (long)a & (long)b));
+        } else if (opName.equals("lor")) {
+            instList.insert(operand1, new PUSH(cpgen, (long)a | (long)b));
+        } else if (opName.equals("lxor")) {
+            instList.insert(operand1, new PUSH(cpgen, (long)a ^ (long)b));
+        } else if (opName.equals("lshl")) {
+            instList.insert(operand1, new PUSH(cpgen, (long)a << (long)b));
+        } else if (opName.equals("lshr")) {
+            instList.insert(operand1, new PUSH(cpgen, (long)a >> (long)b));
+        } else if (opName.equals("lushr")) {
+            instList.insert(operand1, new PUSH(cpgen, (long)a >>> (long)b));
 
         // Float operations
 
