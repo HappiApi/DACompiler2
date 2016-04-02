@@ -100,7 +100,7 @@ public class ConstantFolder {
     public boolean optimizeAllUnaryExprs(InstructionList instList, ConstantPoolGen cpgen) {
 
         // Use InstructionFinder to search for a pattern of instructions
-        // (in our case, a constant binary expression)
+        // (in our case, a constant unary expression)
         String pattern = reConstPushInstruction + " " + reUnaryInstruction;
 
         boolean optimizedLastPass = true;
@@ -166,7 +166,7 @@ public class ConstantFolder {
             return false;
         }
 
-        // Delete the 3 instructions making up the expression
+        // Delete the 2 instructions making up the expression
         try {
             instList.delete(operand);
             instList.delete(operator);
