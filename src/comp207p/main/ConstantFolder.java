@@ -126,7 +126,7 @@ public class ConstantFolder {
         InstructionHandle operator = handles[1];
 
         String opName = operator.getInstruction().getName();
-        Object value = getValue(operand.getInstruction(), cpgen);
+        Object value = getConstValue(operand.getInstruction(), cpgen);
         Number number = (Number)value;
 
         // Negation
@@ -213,8 +213,8 @@ public class ConstantFolder {
 
         String opName = operator.getInstruction().getName();
 
-        Object a = getValue(operand1.getInstruction(), cpgen);
-        Object b = getValue(operand2.getInstruction(), cpgen);
+        Object a = getConstValue(operand1.getInstruction(), cpgen);
+        Object b = getConstValue(operand2.getInstruction(), cpgen);
 
         // Integer operations
 
@@ -314,7 +314,7 @@ public class ConstantFolder {
     }
 
     // Get the value of a ConstantPushInstruction, LDC, or LDC2_W instruction
-    public Object getValue(Instruction instruction, ConstantPoolGen cpgen) {
+    public Object getConstValue(Instruction instruction, ConstantPoolGen cpgen) {
         if (instruction instanceof ConstantPushInstruction) {
             ConstantPushInstruction a = (ConstantPushInstruction)instruction;
             return a.getValue();
