@@ -5,6 +5,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Hashtable;
+import java.util.ArrayList;
 import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.Code;
 import org.apache.bcel.classfile.JavaClass;
@@ -102,7 +105,8 @@ public class ConstantFolder {
 
     public boolean optimizeConstantVars(InstructionList instList, ConstantPoolGen cpgen) {
         InstructionList storeInstList = filterStoreInst(instList);
-
+        Map<Integer, Integer> storeIndexCounts = storeIndexCount(storeInstList);
+        ArrayList<Integer> indices = filterIndex(storeIndexCounts);
         return false;
     }
 
@@ -118,6 +122,39 @@ public class ConstantFolder {
             }
         }
         return storeInstList;
+    }
+
+    // Given InstructionList of StoreInstructions, count store instructions to same index
+    // Decided that Map key of storeIndexCounts is index of local variable rather than a store instruction
+    // because a different store instruction can be called to the same index
+    public Map<Integer, Integer> storeIndexCount(InstructionList storeInstList) {
+        // Counts store instructions to same index
+        Map<Integer, Integer> storeIndexCounts = new Hashtable<Integer, Integer>();
+        int currentIndex;
+        int currentCount;
+        StoreInstruction currentInst;
+
+        // Update index Counts
+        for (Instruction inst : storeInstList.getInstructions()) {
+            currentInst = (StoreInstruction)inst;
+            currentIndex = currentInst.getIndex();
+            currentCount = storeIndexCounts.containsKey(currentIndex) ? storeIndexCounts.get(currentIndex) : 0;
+            storeIndexCounts.put(currentIndex, currentCount + 1);
+        }
+        System.out.println(storeIndexCounts);
+        return storeIndexCounts;
+    }
+
+    public ArrayList<Integer> filterIndex(Map<Integer, Integer> indexCounts) {
+        ArrayList<Integer> indices = new ArrayList<Integer>();
+
+        for(Map.Entry<Integer, Integer> entry : indexCounts.entrySet()) {
+            if (entry.getValue() == 1) {
+                indices.add(entry.getKey());
+            }
+        }
+        System.out.println(indices);
+        return indices;
     }
 
     public boolean optimizeAllUnaryExprs(InstructionList instList, ConstantPoolGen cpgen) {
