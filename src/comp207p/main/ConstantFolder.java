@@ -18,6 +18,7 @@ import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.ConstantPushInstruction;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.StoreInstruction;
+import org.apache.bcel.generic.LoadInstruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionList;
 import org.apache.bcel.generic.LDC;
@@ -63,6 +64,7 @@ public class ConstantFolder {
         for (Method m : methods) {
             this.optimizeMethod(cgen, cpgen, m);
             System.out.println(m);
+            System.out.println();
         }
 
         this.optimized = cgen.getJavaClass();
@@ -107,11 +109,14 @@ public class ConstantFolder {
         InstructionList storeInstList = filterStoreInst(instList);
         Map<Integer, Integer> storeIndexCounts = storeIndexCount(storeInstList);
         ArrayList<Integer> indices = filterIndex(storeIndexCounts);
+        findStoreToIndex(instList, indices);
+
         return false;
     }
 
     // Given an InstructionList, filter only subclass of StoreInstruction
     public InstructionList filterStoreInst(InstructionList instList) {
+        System.out.println("STORE INSTRUCTIONS");
         // Init InstructionList to store relevant instructions
         InstructionList storeInstList = new InstructionList();
         // Put all store instructions into storeInstList
@@ -141,7 +146,8 @@ public class ConstantFolder {
             currentCount = storeIndexCounts.containsKey(currentIndex) ? storeIndexCounts.get(currentIndex) : 0;
             storeIndexCounts.put(currentIndex, currentCount + 1);
         }
-        System.out.println(storeIndexCounts);
+
+        System.out.println("INDEX COUNTS " + storeIndexCounts);
         return storeIndexCounts;
     }
 
@@ -153,8 +159,57 @@ public class ConstantFolder {
                 indices.add(entry.getKey());
             }
         }
-        System.out.println(indices);
+        System.out.println("INDICES WITH COUNT 1 " + indices);
         return indices;
+    }
+
+    // Find constant push and store to index and remove
+    public void findStoreToIndex(InstructionList instList, ArrayList<Integer> indices) {
+        InstructionFinder f = new InstructionFinder(instList);
+        Integer currentIndex;
+        InstructionHandle currentConstPushInstHandle;
+
+        String pattern = reConstPushInstruction + " StoreInstruction";
+        for (Iterator<?> i = f.search(pattern); i.hasNext();) {
+        System.out.println("MATCH CONST + STORE");
+            InstructionHandle[] handles = (InstructionHandle[])i.next();
+            StoreInstruction storeInst = (StoreInstruction)handles[1].getInstruction();
+            currentConstPushInstHandle = handles[0];
+            currentIndex = storeInst.getIndex();
+            if (indices.contains(currentIndex)) {
+                System.out.println(currentConstPushInstHandle);
+                System.out.println(storeInst);
+                // Delete push and store instructions
+                // try {
+                //     instList.delete(storeInst);
+                //     instList.delete(currentConstPushInstHandle);
+                // } catch (TargetLostException e) {
+                //     e.printStackTrace();
+                // }
+                
+                removeLoadToIndex(instList, currentIndex);
+            }
+        }
+
+        
+    }
+
+    // Find load to index and repalce with constant
+    public void removeLoadToIndex(InstructionList instList, Integer currentIndex) {
+        InstructionFinder f = new InstructionFinder(instList);
+        String loadPattern = "LoadInstruction";
+        System.out.println("CORRESPONDING LOAD INSTRUCTIONS");
+        for (Iterator<?> i_l = f.search(loadPattern); i_l.hasNext();) {
+            InstructionHandle[] handles_l = (InstructionHandle[])i_l.next();
+            LoadInstruction loadInst = (LoadInstruction)handles_l[0].getInstruction();
+            InstructionHandle loadInstHandle = handles_l[0];
+
+            if (loadInst.getIndex() == currentIndex) {
+                System.out.println(loadInst);
+                // Replace load with currentConstPushInstHandle Instruction
+                // loadInstHandle.setInstruction(currentConstPushInstHandle.getInstruction());
+            }
+        }
     }
 
     public boolean optimizeAllUnaryExprs(InstructionList instList, ConstantPoolGen cpgen) {
