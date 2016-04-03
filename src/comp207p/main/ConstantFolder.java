@@ -14,6 +14,7 @@ import org.apache.bcel.generic.ClassGen;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.ConstantPushInstruction;
 import org.apache.bcel.generic.Instruction;
+import org.apache.bcel.generic.StoreInstruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionList;
 import org.apache.bcel.generic.LDC;
@@ -58,6 +59,7 @@ public class ConstantFolder {
         Method[] methods = cgen.getMethods();
         for (Method m : methods) {
             this.optimizeMethod(cgen, cpgen, m);
+            System.out.println(m);
         }
 
         this.optimized = cgen.getJavaClass();
@@ -81,6 +83,7 @@ public class ConstantFolder {
             optimizationOccurred = false;
             optimizationOccurred = this.optimizeAllUnaryExprs(instList, cpgen) || optimizationOccurred;
             optimizationOccurred = this.optimizeAllBinaryExprs(instList, cpgen) || optimizationOccurred;
+            optimizationOccurred = this.optimizeConstantVars(instList, cpgen) || optimizationOccurred;
         }
 
         // setPositions(true) checks whether jump handles
@@ -95,6 +98,26 @@ public class ConstantFolder {
         Method newMethod = methodGen.getMethod();
         // replace the method in the original class
         cgen.replaceMethod(method, newMethod);
+    }
+
+    public boolean optimizeConstantVars(InstructionList instList, ConstantPoolGen cpgen) {
+        InstructionList storeInstList = filterStoreInst(instList);
+
+        return false;
+    }
+
+    // Given an InstructionList, filter only subclass of StoreInstruction
+    public InstructionList filterStoreInst(InstructionList instList) {
+        // Init InstructionList to store relevant instructions
+        InstructionList storeInstList = new InstructionList();
+        // Put all store instructions into storeInstList
+        for (Instruction inst : instList.getInstructions()) {
+            if (inst instanceof StoreInstruction) {
+                storeInstList.append(inst);
+                System.out.println(inst);
+            }
+        }
+        return storeInstList;
     }
 
     public boolean optimizeAllUnaryExprs(InstructionList instList, ConstantPoolGen cpgen) {
