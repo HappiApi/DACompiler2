@@ -5,8 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,25 +17,29 @@ import org.apache.bcel.classfile.Code;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.ArithmeticInstruction;
+import org.apache.bcel.generic.BranchHandle;
+import org.apache.bcel.generic.BranchInstruction;
 import org.apache.bcel.generic.ClassGen;
 import org.apache.bcel.generic.CodeExceptionGen;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.ConstantPushInstruction;
+import org.apache.bcel.generic.GOTO;
 import org.apache.bcel.generic.IINC;
+import org.apache.bcel.generic.ISTORE;
+import org.apache.bcel.generic.IfInstruction;
 import org.apache.bcel.generic.IndexedInstruction;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionList;
 import org.apache.bcel.generic.InstructionTargeter;
-import org.apache.bcel.generic.ISTORE;
 import org.apache.bcel.generic.LDC2_W;
 import org.apache.bcel.generic.LDC;
+import org.apache.bcel.generic.LoadInstruction;
 import org.apache.bcel.generic.LocalVariableGen;
 import org.apache.bcel.generic.LocalVariableInstruction;
-import org.apache.bcel.generic.LoadInstruction;
-import org.apache.bcel.generic.StoreInstruction;
 import org.apache.bcel.generic.MethodGen;
 import org.apache.bcel.generic.PUSH;
+import org.apache.bcel.generic.StoreInstruction;
 import org.apache.bcel.generic.TargetLostException;
 import org.apache.bcel.generic.Type;
 import org.apache.bcel.generic.TypedInstruction;
@@ -56,7 +60,10 @@ public class ConstantFolder {
     String reBinaryInstruction = "(DADD|DDIV|DMUL|DREM|DSUB|" +
                                   "FADD|FDIV|FMUL|FREM|FSUB|" +
                                   "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
-                                  "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR)";
+                                  "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR|" +
+                                  "DCMPG|DCMPL|FCMPG|FCMPL|LCMP)";
+    String reUnaryComparison = "(IFEQ|IFGE|IFGT|IFLE|IFLT|IFNE)";
+    String reBinaryComparison = "(IF_ICMPEQ|IF_ICMPGE|IF_ICMPGT|IF_ICMPLE|IF_ICMPLT|IF_ICMPNE)";
 
     ClassGen cgen;
     ConstantPoolGen cpgen;
@@ -110,6 +117,8 @@ public class ConstantFolder {
             optimizationOccurred = false;
             optimizationOccurred = this.optimizeAllUnaryExprs(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeAllBinaryExprs(instList) || optimizationOccurred;
+            optimizationOccurred = this.optimizeAllUnaryComparisons(instList) || optimizationOccurred;
+            optimizationOccurred = this.optimizeAllBinaryComparisons(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeDynamicVariables(instList) || optimizationOccurred;
             optimizationOccurred = this.removeUnreachableCode(instList) || optimizationOccurred;
         }
@@ -126,6 +135,138 @@ public class ConstantFolder {
         Method newMethod = mgen.getMethod();
         // replace the method in the original class
         cgen.replaceMethod(method, newMethod);
+    }
+
+    public boolean optimizeAllUnaryComparisons(InstructionList instList) {
+
+        // Use InstructionFinder to search for a pattern of instructions
+        String pattern = reConstPushInstruction + " " + reUnaryComparison;
+
+        boolean optimizedLastPass = true;
+        boolean somethingWasOptimized = false;
+
+        while (optimizedLastPass) {
+            optimizedLastPass = false;
+            InstructionFinder f = new InstructionFinder(instList);
+            for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+                InstructionHandle[] handles = (InstructionHandle[])e.next();
+                boolean optimizedThisPass = this.optimizeUnaryComparisonExpr(handles, instList);
+                optimizedLastPass = optimizedLastPass || optimizedThisPass;
+                somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
+            }
+        }
+
+        return somethingWasOptimized;
+    }
+
+    public boolean optimizeUnaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
+
+        InstructionHandle ifInstruction = handles[1];
+        String opName = ifInstruction.getInstruction().getName();
+
+        int operand = (int)getConstValue(handles[0].getInstruction(), cpgen);
+
+        InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
+        boolean follow = false;
+
+        if (opName.equals("ifeq")) {
+            follow = operand == 0;
+        } else if (opName.equals("ifne")) {
+            follow = operand != 0;
+        } else if (opName.equals("iflt")) {
+            follow = operand < 0;
+        } else if (opName.equals("ifle")) {
+            follow = operand <= 0;
+        } else if (opName.equals("ifgt")) {
+            follow = operand > 0;
+        } else if (opName.equals("ifge")) {
+            follow = operand >= 0;
+        } else {
+            // Return because we don't want to delete instructions.
+            return false;
+        }
+
+        InstructionHandle newTarget;
+
+        if (follow) {
+            BranchInstruction gotoInstruction = new GOTO(target);
+            BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
+            newTarget = gotoInstHandle;
+        } else {
+            newTarget = ifInstruction.getNext();
+        }
+
+        deleteInstruction(handles[0], newTarget, instList);
+        deleteInstruction(ifInstruction, newTarget, instList);
+
+        return true;
+    }
+
+    public boolean optimizeAllBinaryComparisons(InstructionList instList) {
+
+        // Use InstructionFinder to search for a pattern of instructions
+        String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reBinaryComparison;
+
+        boolean optimizedLastPass = true;
+        boolean somethingWasOptimized = false;
+
+        while (optimizedLastPass) {
+            optimizedLastPass = false;
+            InstructionFinder f = new InstructionFinder(instList);
+            for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+                InstructionHandle[] handles = (InstructionHandle[])e.next();
+                boolean optimizedThisPass = this.optimizeBinaryComparisonExpr(handles, instList);
+                optimizedLastPass = optimizedLastPass || optimizedThisPass;
+                somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
+            }
+        }
+
+        return somethingWasOptimized;
+    }
+
+    public boolean optimizeBinaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
+
+        InstructionHandle ifInstruction = handles[2];
+        String opName = ifInstruction.getInstruction().getName();
+
+        int operand1 = (int)getConstValue(handles[0].getInstruction(), cpgen);
+        int operand2 = (int)getConstValue(handles[1].getInstruction(), cpgen);
+
+        InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
+        boolean follow = false;
+
+        if (opName.equals("if_icmpeq")) {
+            follow = operand1 == operand2;
+        } else if (opName.equals("if_icmpne")) {
+            follow = operand1 != operand2;
+        } else if (opName.equals("if_icmplt")) {
+            follow = operand1 < operand2;
+        } else if (opName.equals("if_icmple")) {
+            follow = operand1 <= operand2;
+        } else if (opName.equals("if_icmpgt")) {
+            follow = operand1 > operand2;
+        } else if (opName.equals("if_icmpge")) {
+            follow = operand1 >= operand2;
+        } else {
+            // Return because we don't want to delete instructions.
+            return false;
+        }
+
+        InstructionHandle newTarget;
+
+        if (follow) {
+            BranchInstruction gotoInstruction = new GOTO(target);
+            BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
+            newTarget = gotoInstHandle;
+        } else {
+            newTarget = ifInstruction.getNext();
+        }
+
+        deleteInstruction(handles[0], newTarget, instList);
+        deleteInstruction(handles[1], newTarget, instList);
+        deleteInstruction(ifInstruction, newTarget, instList);
+
+        return true;
     }
 
     public boolean optimizeAllUnaryExprs(InstructionList instList) {
@@ -338,6 +479,46 @@ public class ConstantFolder {
             newInstruction = new PUSH(cpgen, (double)a / (double)b);
         } else if (opName.equals("drem")) {
             newInstruction = new PUSH(cpgen, (double)a % (double)b);
+
+        // Comparisons
+
+        } else if (opName.equals("lcmp")) {
+            int value;
+            if ((long)a > (long)b) {
+                value = 1;
+            } else if ((long)a == (long)b) {
+                value = 0;
+            } else {
+                value = -1;
+            }
+            newInstruction = new PUSH(cpgen, value);
+        } else if (opName.equals("fcmpg") || opName.equals("fcmpl")) {
+            System.out.println("\n\n\n\n");
+            System.out.println(operator);
+            System.out.println("\n\n\n\n");
+            int value;
+            if (Float.isNaN((float)a) || Float.isNaN((float)b)) {
+                value = opName.equals("fcmpg") ? 1 : -1;
+            } else if ((float)a > (float)b) {
+                value = 1;
+            } else if ((float)a == (float)b) {
+                value = 0;
+            } else {
+                value = -1;
+            }
+            newInstruction = new PUSH(cpgen, value);
+        } else if (opName.equals("dcmpg") || opName.equals("dcmpl")) {
+            int value;
+            if (Double.isNaN((double)a) || Double.isNaN((double)b)) {
+                value = opName.equals("dcmpg") ? 1 : -1;
+            } else if ((double)a > (double)b) {
+                value = 1;
+            } else if ((double)a == (double)b) {
+                value = 0;
+            } else {
+                value = -1;
+            }
+            newInstruction = new PUSH(cpgen, value);
 
         } else {
             // reached when instruction is not handled
