@@ -54,7 +54,7 @@ public class ConstantFolder {
     JavaClass original = null;
     JavaClass optimized = null;
 
-    String reConstPushInstruction = "(BIPUSH|DCONST|FCONST|ICONST|LCONST|SIPUSH|LDC|LDC2_W)"; // LDC_W is a subclass of LDC, so we don't need to include it
+    String reConstPushInstruction = "(BIPUSH|DCONST|FCONST|FCONST_2|ICONST|LCONST|SIPUSH|LDC|LDC2_W)"; // LDC_W is a subclass of LDC, so we don't need to include it
     String reUnaryInstruction  = "(DNEG|FNEG|INEG|LNEG|" +
                                   "I2L|I2F|I2D|L2I|L2F|L2D|F2I|F2L|F2D|D2I|D2L|D2F)";
     String reBinaryInstruction = "(DADD|DDIV|DMUL|DREM|DSUB|" +
