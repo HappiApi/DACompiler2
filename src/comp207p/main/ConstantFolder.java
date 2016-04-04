@@ -108,7 +108,7 @@ public class ConstantFolder {
             optimizationOccurred = false;
             optimizationOccurred = this.optimizeAllUnaryExprs(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeAllBinaryExprs(instList) || optimizationOccurred;
-            optimizationOccurred = this.optimizeDynamicVars(instList) || optimizationOccurred;
+            optimizationOccurred = this.optimizeDynamicVariables(instList) || optimizationOccurred;
         }
 
         // setPositions(true) checks whether jump handles
@@ -388,10 +388,6 @@ public class ConstantFolder {
     //         return Type.UNKNOWN;
     //     }
     // }
-
-    public boolean optimizeDynamicVars(InstructionList instList) {
-        return optimizeDynamicVariables(instList);
-    }
 
     public boolean optimizeDynamicVariables(InstructionList instList) {
 
