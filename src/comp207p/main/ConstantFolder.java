@@ -24,6 +24,7 @@ import org.apache.bcel.generic.ConstantPushInstruction;
 import org.apache.bcel.generic.IINC;
 import org.apache.bcel.generic.IndexedInstruction;
 import org.apache.bcel.generic.Instruction;
+import org.apache.bcel.generic.IfInstruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionList;
 import org.apache.bcel.generic.InstructionTargeter;
@@ -39,6 +40,7 @@ import org.apache.bcel.generic.PUSH;
 import org.apache.bcel.generic.TargetLostException;
 import org.apache.bcel.generic.Type;
 import org.apache.bcel.generic.TypedInstruction;
+import org.apache.bcel.generic.GOTO;
 import org.apache.bcel.util.InstructionFinder;
 import org.apache.bcel.verifier.structurals.ControlFlowGraph;
 import org.apache.bcel.verifier.structurals.InstructionContext;
@@ -57,7 +59,7 @@ public class ConstantFolder {
                                   "FADD|FDIV|FMUL|FREM|FSUB|" +
                                   "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
                                   "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR)";
-
+    String reIfInstruction = "(IF_ICMPEQ|IF_ICMPGE|IF_ICMPGT|IF_ICMPLE|IF_ICMPLT|IF_ICMPNE|IFEQ|IFGE|IFGT|IFLE|IFLT|IFNE|IFNONNULL|IFNULL)";
     ClassGen cgen;
     ConstantPoolGen cpgen;
 
@@ -112,6 +114,7 @@ public class ConstantFolder {
             optimizationOccurred = this.optimizeAllBinaryExprs(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeDynamicVariables(instList) || optimizationOccurred;
             optimizationOccurred = this.removeUnreachableCode(instList) || optimizationOccurred;
+            optimizationOccurred = this.optimizeComparison(instList) || optimizationOccurred;
         }
 
         // setPositions(true) checks whether jump handles
@@ -126,6 +129,41 @@ public class ConstantFolder {
         Method newMethod = mgen.getMethod();
         // replace the method in the original class
         cgen.replaceMethod(method, newMethod);
+    }
+
+    public boolean optimizeComparison(InstructionList instList) {
+        String pattern = reConstPushInstruction + ' ' + reConstPushInstruction + ' ' + reIfInstruction;
+
+        InstructionFinder f = new InstructionFinder(instList);
+        for (Iterator<?> i = f.search(pattern); i.hasNext();) {
+
+            InstructionHandle[] handles = (InstructionHandle[])i.next();
+
+            InstructionHandle ifInstruction = handles[2];
+            String instName = ifInstruction.getInstruction().getName();
+
+            int operand = (int)getConstValue(handles[0], cpgen);
+            int operand2 = (int)getConstValue(handles[1], cpgen);
+
+            InstructionHandle target = (IfInstruction)ifInstruction.getTarget();
+
+            if (instName.equals("IF_ICMPGE")) {
+                if (operand >= operand2) {
+                    Instruction goto = new GOTO(target);
+                    ifInstruction.setInstruction(goto);
+                    deleteInstruction(handles[0], goto, instList);
+                    deleteInstruction(handles[1], goto, instList);
+                } else {
+                    Instruction next = ifInstruction.getNext();
+                    deleteInstruction(handles[0], next, instList);
+                    deleteInstruction(handles[1], next, instList);
+                    deleteInstruction(ifInstruction, next, instList);
+                }
+            } else {
+
+            }
+        }
+        return false;
     }
 
     public boolean optimizeAllUnaryExprs(InstructionList instList) {
