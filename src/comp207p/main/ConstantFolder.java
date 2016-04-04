@@ -27,6 +27,7 @@ import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionList;
 import org.apache.bcel.generic.InstructionTargeter;
+import org.apache.bcel.generic.ISTORE;
 import org.apache.bcel.generic.LDC2_W;
 import org.apache.bcel.generic.LDC;
 import org.apache.bcel.generic.LocalVariableGen;
@@ -527,12 +528,37 @@ public class ConstantFolder {
         Instruction constantInstruction = constantInstHandle.getInstruction().copy();
 
         for (InstructionHandle loadInstHandle : loadDependencies) {
-            InstructionHandle newTarget = instList.insert(loadInstHandle, constantInstruction.copy());
-            System.out.print("Replacing: \033[0;31m");
-            System.out.print(loadInstHandle);
-            System.out.print("\033[0m\n     with: \033[0;32m");
-            System.out.print(newTarget);
-            System.out.println("\033[0m\n");
+
+            Instruction loadInstruction = loadInstHandle.getInstruction();
+            InstructionHandle newTarget;
+
+            if (loadInstruction instanceof IINC) {
+
+                IINC iinc = (IINC)loadInstruction;
+                int constValue = (int)getConstValue(constantInstruction, cpgen);
+                int value = constValue + iinc.getIncrement();
+                newTarget = instList.insert(loadInstHandle, new PUSH(cpgen, value));
+                InstructionHandle newStore = instList.append(newTarget, new ISTORE(iinc.getIndex()));
+
+                System.out.print("Replacing: \033[0;31m");
+                System.out.print(loadInstHandle);
+                System.out.print("\033[0m\n     with: \033[0;32m");
+                System.out.print(newTarget);
+                System.out.print("\n           ");
+                System.out.print(newStore);
+                System.out.println("\033[0m\n");
+
+            } else {
+
+                newTarget = instList.insert(loadInstHandle, constantInstruction.copy());
+
+                System.out.print("Replacing: \033[0;31m");
+                System.out.print(loadInstHandle);
+                System.out.print("\033[0m\n     with: \033[0;32m");
+                System.out.print(newTarget);
+                System.out.println("\033[0m\n");
+            }
+
             deleteInstruction(loadInstHandle, newTarget, instList);
         }
 
@@ -559,8 +585,7 @@ public class ConstantFolder {
     public boolean allLoadsCanBeOptimized(Collection<InstructionHandle> loadDependencies, DependencyMap loadInstructions) {
         for (InstructionHandle loadInstHandle : loadDependencies) {
             if (!(loadInstructions.containsKey(loadInstHandle) &&
-                  loadInstructions.get(loadInstHandle).size() == 1) ||
-                  loadInstHandle.getInstruction() instanceof IINC) {
+                  loadInstructions.get(loadInstHandle).size() == 1)) {
                 return false;
             }
         }
