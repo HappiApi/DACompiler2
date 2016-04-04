@@ -109,6 +109,7 @@ public class ConstantFolder {
             optimizationOccurred = this.optimizeAllUnaryExprs(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeAllBinaryExprs(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeDynamicVariables(instList) || optimizationOccurred;
+            optimizationOccurred = this.removeUnreachableCode(instList) || optimizationOccurred;
         }
 
         // setPositions(true) checks whether jump handles
@@ -388,6 +389,24 @@ public class ConstantFolder {
     //         return Type.UNKNOWN;
     //     }
     // }
+
+    public boolean removeUnreachableCode(InstructionList instList) {
+        ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
+        for (InstructionHandle instHandle : instList.getInstructionHandles()) {
+            if (flowGraph.isDead(instHandle)) {
+                try {
+                    System.out.print("Dead code: \033[0;31m");
+                    System.out.print(instHandle);
+                    System.out.println("\033[0m\n");
+                    instList.delete(instHandle);
+                    return true;
+                } catch (TargetLostException e) {
+                    // do nothing
+                }
+            }
+        }
+        return false;
+    }
 
     public boolean optimizeDynamicVariables(InstructionList instList) {
 
