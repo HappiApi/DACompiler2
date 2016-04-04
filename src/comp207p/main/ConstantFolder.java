@@ -5,8 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,26 +23,26 @@ import org.apache.bcel.generic.ClassGen;
 import org.apache.bcel.generic.CodeExceptionGen;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.ConstantPushInstruction;
+import org.apache.bcel.generic.GOTO;
 import org.apache.bcel.generic.IINC;
+import org.apache.bcel.generic.ISTORE;
+import org.apache.bcel.generic.IfInstruction;
 import org.apache.bcel.generic.IndexedInstruction;
 import org.apache.bcel.generic.Instruction;
-import org.apache.bcel.generic.IfInstruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionList;
 import org.apache.bcel.generic.InstructionTargeter;
-import org.apache.bcel.generic.ISTORE;
 import org.apache.bcel.generic.LDC2_W;
 import org.apache.bcel.generic.LDC;
+import org.apache.bcel.generic.LoadInstruction;
 import org.apache.bcel.generic.LocalVariableGen;
 import org.apache.bcel.generic.LocalVariableInstruction;
-import org.apache.bcel.generic.LoadInstruction;
-import org.apache.bcel.generic.StoreInstruction;
 import org.apache.bcel.generic.MethodGen;
 import org.apache.bcel.generic.PUSH;
+import org.apache.bcel.generic.StoreInstruction;
 import org.apache.bcel.generic.TargetLostException;
 import org.apache.bcel.generic.Type;
 import org.apache.bcel.generic.TypedInstruction;
-import org.apache.bcel.generic.GOTO;
 import org.apache.bcel.util.InstructionFinder;
 import org.apache.bcel.verifier.structurals.ControlFlowGraph;
 import org.apache.bcel.verifier.structurals.InstructionContext;
@@ -115,9 +115,10 @@ public class ConstantFolder {
             optimizationOccurred = false;
             optimizationOccurred = this.optimizeAllUnaryExprs(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeAllBinaryExprs(instList) || optimizationOccurred;
+            optimizationOccurred = this.optimizeAllUnaryComparisons(instList) || optimizationOccurred;
+            optimizationOccurred = this.optimizeAllBinaryComparisons(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeDynamicVariables(instList) || optimizationOccurred;
             optimizationOccurred = this.removeUnreachableCode(instList) || optimizationOccurred;
-            optimizationOccurred = this.optimizeComparison(instList) || optimizationOccurred;
         }
 
         // setPositions(true) checks whether jump handles
@@ -134,42 +135,136 @@ public class ConstantFolder {
         cgen.replaceMethod(method, newMethod);
     }
 
-    public boolean optimizeComparison(InstructionList instList) {
-        String pattern = reConstPushInstruction + ' ' + reConstPushInstruction + ' ' + reIfInstruction;
+    public boolean optimizeAllUnaryComparisons(InstructionList instList) {
 
-        InstructionFinder f = new InstructionFinder(instList);
-        for (Iterator<?> i = f.search(pattern); i.hasNext();) {
+        // Use InstructionFinder to search for a pattern of instructions
+        String pattern = reConstPushInstruction + " " + reIfInstruction;
 
-            InstructionHandle[] handles = (InstructionHandle[])i.next();
+        boolean optimizedLastPass = true;
+        boolean somethingWasOptimized = false;
 
-            InstructionHandle ifInstruction = handles[2];
-            String instName = ifInstruction.getInstruction().getName();
-
-            int operand = (int)getConstValue(handles[0].getInstruction(), cpgen);
-            int operand2 = (int)getConstValue(handles[1].getInstruction(), cpgen);
-
-            InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
-
-            if (instName.equals("if_icmple")) {
-                if (operand <= operand2) {
-                    System.out.println("\n\n\n\n\nBINGOOOOOOOOOO\n\n\n\n");
-                    Instruction gotoInstruction = new GOTO(target);
-                    InstructionHandle gotoInstHandle = instList.insert(ifInstruction, gotoInstruction);
-                    deleteInstruction(ifInstruction, gotoInstHandle, instList);
-                    deleteInstruction(handles[0], gotoInstHandle, instList);
-                    deleteInstruction(handles[1], gotoInstHandle, instList);
-                } else {
-                    System.out.println("\n\n\n\n\nLOOOOOOOOOOOOOOOOOOOOL\n\n\n\n");
-                    InstructionHandle next = ifInstruction.getNext();
-                    deleteInstruction(handles[0], next, instList);
-                    deleteInstruction(handles[1], next, instList);
-                    deleteInstruction(ifInstruction, next, instList);
-                }
-            } else {
-
+        while (optimizedLastPass) {
+            optimizedLastPass = false;
+            InstructionFinder f = new InstructionFinder(instList);
+            for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+                InstructionHandle[] handles = (InstructionHandle[])e.next();
+                boolean optimizedThisPass = this.optimizeUnaryComparisonExpr(handles, instList);
+                optimizedLastPass = optimizedLastPass || optimizedThisPass;
+                somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
             }
         }
-        return false;
+
+        return somethingWasOptimized;
+    }
+
+    public boolean optimizeUnaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
+
+        InstructionHandle ifInstruction = handles[1];
+        String instName = ifInstruction.getInstruction().getName();
+
+        int operand = (int)getConstValue(handles[0].getInstruction(), cpgen);
+
+        InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
+        boolean follow = false;
+
+        if (instName.equals("ifeq")) {
+            follow = operand == 0;
+        } else if (instName.equals("ifne")) {
+            follow = operand != 0;
+        } else if (instName.equals("iflt")) {
+            follow = operand < 0;
+        } else if (instName.equals("ifle")) {
+            follow = operand <= 0;
+        } else if (instName.equals("ifgt")) {
+            follow = operand > 0;
+        } else if (instName.equals("ifge")) {
+            follow = operand >= 0;
+        } else {
+            // Return because we don't want to delete instructions.
+            return false;
+        }
+
+        InstructionHandle newTarget;
+
+        if (follow) {
+            BranchInstruction gotoInstruction = new GOTO(target);
+            BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
+            newTarget = gotoInstHandle;
+        } else {
+            newTarget = ifInstruction.getNext();
+        }
+
+        deleteInstruction(handles[0], newTarget, instList);
+        deleteInstruction(ifInstruction, newTarget, instList);
+
+        return true;
+    }
+
+    public boolean optimizeAllBinaryComparisons(InstructionList instList) {
+
+        // Use InstructionFinder to search for a pattern of instructions
+        String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reIfInstruction;
+
+        boolean optimizedLastPass = true;
+        boolean somethingWasOptimized = false;
+
+        while (optimizedLastPass) {
+            optimizedLastPass = false;
+            InstructionFinder f = new InstructionFinder(instList);
+            for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+                InstructionHandle[] handles = (InstructionHandle[])e.next();
+                boolean optimizedThisPass = this.optimizeBinaryComparisonExpr(handles, instList);
+                optimizedLastPass = optimizedLastPass || optimizedThisPass;
+                somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
+            }
+        }
+
+        return somethingWasOptimized;
+    }
+
+    public boolean optimizeBinaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
+
+        InstructionHandle ifInstruction = handles[2];
+        String instName = ifInstruction.getInstruction().getName();
+
+        int operand1 = (int)getConstValue(handles[0].getInstruction(), cpgen);
+        int operand2 = (int)getConstValue(handles[1].getInstruction(), cpgen);
+
+        InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
+        boolean follow = false;
+
+        if (instName.equals("if_icmpeq")) {
+            follow = operand1 == operand2;
+        } else if (instName.equals("if_icmpne")) {
+            follow = operand1 != operand2;
+        } else if (instName.equals("if_icmplt")) {
+            follow = operand1 < operand2;
+        } else if (instName.equals("if_icmple")) {
+            follow = operand1 <= operand2;
+        } else if (instName.equals("if_icmpgt")) {
+            follow = operand1 > operand2;
+        } else if (instName.equals("if_icmpge")) {
+            follow = operand1 >= operand2;
+        } else {
+            // Return because we don't want to delete instructions.
+            return false;
+        }
+
+        InstructionHandle newTarget;
+
+        if (follow) {
+            BranchInstruction gotoInstruction = new GOTO(target);
+            BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
+            newTarget = gotoInstHandle;
+        } else {
+            newTarget = ifInstruction.getNext();
+        }
+
+        deleteInstruction(handles[0], newTarget, instList);
+        deleteInstruction(handles[1], newTarget, instList);
+        deleteInstruction(ifInstruction, newTarget, instList);
+
+        return true;
     }
 
     public boolean optimizeAllUnaryExprs(InstructionList instList) {
