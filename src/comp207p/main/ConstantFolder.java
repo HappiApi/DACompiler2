@@ -58,7 +58,8 @@ public class ConstantFolder {
     String reBinaryInstruction = "(DADD|DDIV|DMUL|DREM|DSUB|" +
                                   "FADD|FDIV|FMUL|FREM|FSUB|" +
                                   "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
-                                  "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR)";
+                                  "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR|" +
+                                  "DCMPG|DCMPL|FCMPG|FCMPL|LCMP)";
     String reIfInstruction = "(IF_ICMPEQ|IF_ICMPGE|IF_ICMPGT|IF_ICMPLE|IF_ICMPLT|IF_ICMPNE|IFEQ|IFGE|IFGT|IFLE|IFLT|IFNE|IFNONNULL|IFNULL)";
     ClassGen cgen;
     ConstantPoolGen cpgen;
@@ -379,6 +380,43 @@ public class ConstantFolder {
             newInstruction = new PUSH(cpgen, (double)a / (double)b);
         } else if (opName.equals("drem")) {
             newInstruction = new PUSH(cpgen, (double)a % (double)b);
+
+        // Comparisons
+
+        } else if (opName.equals("lcmp")) {
+            int value;
+            if ((long)a > (long)b) {
+                value = 1;
+            } else if ((long)a == (long)b) {
+                value = 0;
+            } else {
+                value = -1;
+            }
+            newInstruction = new PUSH(cpgen, value);
+        } else if (opName.equals("fcmpg") || opName.equals("fcmpl")) {
+            int value;
+            if (Float.isNaN((float)a) || Float.isNaN((float)b)) {
+                value = opName.equals("fcmpg") ? 1 : -1;
+            } else if ((float)a > (float)b) {
+                value = 1;
+            } else if ((float)a == (float)b) {
+                value = 0;
+            } else {
+                value = -1;
+            }
+            newInstruction = new PUSH(cpgen, value);
+        } else if (opName.equals("dcmpg") || opName.equals("dcmpl")) {
+            int value;
+            if (Double.isNaN((double)a) || Double.isNaN((double)b)) {
+                value = opName.equals("dcmpg") ? 1 : -1;
+            } else if ((double)a > (double)b) {
+                value = 1;
+            } else if ((double)a == (double)b) {
+                value = 0;
+            } else {
+                value = -1;
+            }
+            newInstruction = new PUSH(cpgen, value);
 
         } else {
             // reached when instruction is not handled
