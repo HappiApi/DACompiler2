@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -501,7 +502,7 @@ public class ConstantFolder {
     public boolean optimizeStoreInstruction(InstructionHandle storeInstHandle, InstructionList instList, DependencyMap loadInstructions, DependencyMap storeInstructions) {
 
         LocalVariableInstruction storeInstruction = (LocalVariableInstruction)storeInstHandle.getInstruction();
-        Set<InstructionHandle> loadDependencies = storeInstructions.get(storeInstHandle);
+        Collection<InstructionHandle> loadDependencies = storeInstructions.get(storeInstHandle);
 
         if (storeInstruction instanceof IINC) {
             // System.out.print("SKIPPING INCREMENT: ");
@@ -553,7 +554,7 @@ public class ConstantFolder {
                instruction instanceof LDC2_W;
     }
 
-    public boolean allLoadsCanBeOptimized(Set<InstructionHandle> loadDependencies, DependencyMap loadInstructions) {
+    public boolean allLoadsCanBeOptimized(Collection<InstructionHandle> loadDependencies, DependencyMap loadInstructions) {
         for (InstructionHandle loadInstHandle : loadDependencies) {
             if (!(loadInstructions.containsKey(loadInstHandle) &&
                   loadInstructions.get(loadInstHandle).size() == 1) ||

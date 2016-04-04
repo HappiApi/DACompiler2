@@ -19,51 +19,38 @@ import org.apache.bcel.generic.LocalVariableInstruction;
 public class DependencyMap {
 
     InstructionList instList;
-    LinkedHashMap<Integer, Collection<Integer>> instructionMap;
+    LinkedHashMap<InstructionHandle, Collection<InstructionHandle>> instructionMap;
 
     public DependencyMap(InstructionList instList) {
         this.instList = instList;
-        this.instructionMap = new LinkedHashMap<Integer, Collection<Integer>>();
+        this.instructionMap = new LinkedHashMap<InstructionHandle, Collection<InstructionHandle>>();
     }
 
-    public void addDependency(InstructionHandle keyHandle, InstructionHandle valueHandle) {
-        Integer key = keyHandle.getPosition();
-        Integer value = valueHandle.getPosition();
+    public void addKey(InstructionHandle key) {
         if (!instructionMap.containsKey(key)) {
-            instructionMap.put(key, new ArrayList<Integer>());
+            instructionMap.put(key, new ArrayList<InstructionHandle>());
         }
+    }
+
+    public void addDependency(InstructionHandle key, InstructionHandle value) {
+        addKey(key);
         instructionMap.get(key).add(value);
     }
 
-    public boolean containsKey(InstructionHandle keyHandle) {
-        Integer key = keyHandle.getPosition();
+    public boolean containsKey(InstructionHandle key) {
         return instructionMap.containsKey(key);
     }
 
-    public Set<InstructionHandle> get(InstructionHandle keyHandle) {
-        Integer key = keyHandle.getPosition();
-        return mapToInstHandles(instructionMap.get(key));
+    public Collection<InstructionHandle> get(InstructionHandle key) {
+        return instructionMap.get(key);
     }
 
     public Set<InstructionHandle> keySet() {
-        return mapToInstHandles(instructionMap.keySet());
+        return instructionMap.keySet();
     }
 
-    public Collection<Set<InstructionHandle>> values() {
-        Collection<Collection<Integer>> collection = instructionMap.values();
-        Collection<Set<InstructionHandle>> output = new ArrayList<Set<InstructionHandle>>();
-        for (Collection<Integer> positions : collection) {
-            output.add(mapToInstHandles(positions));
-        }
-        return output;
-    }
-
-    public Set<InstructionHandle> mapToInstHandles(Collection<Integer> positions) {
-        Set<InstructionHandle> output = new HashSet<InstructionHandle>();
-        for (Integer position : positions) {
-            output.add(instList.findHandle(position));
-        }
-        return output;
+    public Collection<Collection<InstructionHandle>> values() {
+        return instructionMap.values();
     }
 
 }
