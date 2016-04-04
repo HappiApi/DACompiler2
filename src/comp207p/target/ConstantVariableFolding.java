@@ -27,4 +27,22 @@ public class ConstantVariableFolding {
         return x > y;
     }
 
+    public boolean methodFive() {
+        float a = 1;
+        float b = 2;
+        return a > b;
+    }
+
+    public boolean methodSix() {
+        double a = -1;
+        double b = 1;
+        return b > a;
+    }
+
+    public boolean methodSeven() {
+        double a = Double.NaN;
+        double b = 0;
+        return a > b;
+    }
+
 }
