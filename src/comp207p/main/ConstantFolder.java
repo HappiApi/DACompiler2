@@ -62,7 +62,9 @@ public class ConstantFolder {
                                   "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
                                   "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR|" +
                                   "DCMPG|DCMPL|FCMPG|FCMPL|LCMP)";
-    String reIfInstruction = "(IF_ICMPEQ|IF_ICMPGE|IF_ICMPGT|IF_ICMPLE|IF_ICMPLT|IF_ICMPNE|IFEQ|IFGE|IFGT|IFLE|IFLT|IFNE)";
+    String reUnaryComparison = "(IFEQ|IFGE|IFGT|IFLE|IFLT|IFNE)";
+    String reBinaryComparison = "(IF_ICMPEQ|IF_ICMPGE|IF_ICMPGT|IF_ICMPLE|IF_ICMPLT|IF_ICMPNE)";
+
     ClassGen cgen;
     ConstantPoolGen cpgen;
 
@@ -138,7 +140,7 @@ public class ConstantFolder {
     public boolean optimizeAllUnaryComparisons(InstructionList instList) {
 
         // Use InstructionFinder to search for a pattern of instructions
-        String pattern = reConstPushInstruction + " " + reIfInstruction;
+        String pattern = reConstPushInstruction + " " + reUnaryComparison;
 
         boolean optimizedLastPass = true;
         boolean somethingWasOptimized = false;
@@ -203,7 +205,7 @@ public class ConstantFolder {
     public boolean optimizeAllBinaryComparisons(InstructionList instList) {
 
         // Use InstructionFinder to search for a pattern of instructions
-        String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reIfInstruction;
+        String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reBinaryComparison;
 
         boolean optimizedLastPass = true;
         boolean somethingWasOptimized = false;
