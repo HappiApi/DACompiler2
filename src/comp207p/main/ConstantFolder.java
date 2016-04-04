@@ -444,6 +444,8 @@ public class ConstantFolder {
         LocalVariableInstruction storeInstruction = (LocalVariableInstruction)storeInstHandle.getInstruction();
         int storeInstructionIndex = storeInstruction.getIndex();
 
+        storeInstructions.addKey(storeInstHandle);
+
         ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
         Set<Integer> visited = new HashSet<Integer>();
         Stack<InstructionContext> frontier = new Stack<InstructionContext>();
