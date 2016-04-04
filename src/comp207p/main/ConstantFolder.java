@@ -447,7 +447,7 @@ public class ConstantFolder {
         storeInstructions.addKey(storeInstHandle);
 
         ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
-        Set<Integer> visited = new HashSet<Integer>();
+        Set<InstructionHandle> visited = new HashSet<InstructionHandle>();
         Stack<InstructionContext> frontier = new Stack<InstructionContext>();
 
         InstructionHandle nextInstHandle = storeInstHandle.getNext();
@@ -492,10 +492,10 @@ public class ConstantFolder {
             }
 
             for (InstructionContext nextContext : context.getSuccessors()) {
-                Integer position = nextContext.getInstruction().getPosition();
-                if (!visited.contains(position)) {
+                InstructionHandle nextHandle = nextContext.getInstruction();
+                if (!visited.contains(nextHandle)) {
                     frontier.push(nextContext);
-                    visited.add(position);
+                    visited.add(nextHandle);
                 }
             }
         }
