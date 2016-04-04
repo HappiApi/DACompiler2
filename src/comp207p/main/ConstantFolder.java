@@ -142,19 +142,22 @@ public class ConstantFolder {
             InstructionHandle ifInstruction = handles[2];
             String instName = ifInstruction.getInstruction().getName();
 
-            int operand = (int)getConstValue(handles[0], cpgen);
-            int operand2 = (int)getConstValue(handles[1], cpgen);
+            int operand = (int)getConstValue(handles[0].getInstruction(), cpgen);
+            int operand2 = (int)getConstValue(handles[1].getInstruction(), cpgen);
 
-            InstructionHandle target = (IfInstruction)ifInstruction.getTarget();
+            InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
 
-            if (instName.equals("IF_ICMPGE")) {
-                if (operand >= operand2) {
-                    Instruction goto = new GOTO(target);
-                    ifInstruction.setInstruction(goto);
-                    deleteInstruction(handles[0], goto, instList);
-                    deleteInstruction(handles[1], goto, instList);
+            if (instName.equals("if_icmple")) {
+                if (operand <= operand2) {
+                    System.out.println("\n\n\n\n\nBINGOOOOOOOOOO\n\n\n\n");
+                    Instruction gotoInstruction = new GOTO(target);
+                    InstructionHandle gotoInstHandle = instList.insert(ifInstruction, gotoInstruction);
+                    deleteInstruction(ifInstruction, gotoInstHandle, instList);
+                    deleteInstruction(handles[0], gotoInstHandle, instList);
+                    deleteInstruction(handles[1], gotoInstHandle, instList);
                 } else {
-                    Instruction next = ifInstruction.getNext();
+                    System.out.println("\n\n\n\n\nLOOOOOOOOOOOOOOOOOOOOL\n\n\n\n");
+                    InstructionHandle next = ifInstruction.getNext();
                     deleteInstruction(handles[0], next, instList);
                     deleteInstruction(handles[1], next, instList);
                     deleteInstruction(ifInstruction, next, instList);
