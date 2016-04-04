@@ -162,24 +162,24 @@ public class ConstantFolder {
     public boolean optimizeUnaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
 
         InstructionHandle ifInstruction = handles[1];
-        String instName = ifInstruction.getInstruction().getName();
+        String opName = ifInstruction.getInstruction().getName();
 
         int operand = (int)getConstValue(handles[0].getInstruction(), cpgen);
 
         InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
         boolean follow = false;
 
-        if (instName.equals("ifeq")) {
+        if (opName.equals("ifeq")) {
             follow = operand == 0;
-        } else if (instName.equals("ifne")) {
+        } else if (opName.equals("ifne")) {
             follow = operand != 0;
-        } else if (instName.equals("iflt")) {
+        } else if (opName.equals("iflt")) {
             follow = operand < 0;
-        } else if (instName.equals("ifle")) {
+        } else if (opName.equals("ifle")) {
             follow = operand <= 0;
-        } else if (instName.equals("ifgt")) {
+        } else if (opName.equals("ifgt")) {
             follow = operand > 0;
-        } else if (instName.equals("ifge")) {
+        } else if (opName.equals("ifge")) {
             follow = operand >= 0;
         } else {
             // Return because we don't want to delete instructions.
@@ -227,7 +227,7 @@ public class ConstantFolder {
     public boolean optimizeBinaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
 
         InstructionHandle ifInstruction = handles[2];
-        String instName = ifInstruction.getInstruction().getName();
+        String opName = ifInstruction.getInstruction().getName();
 
         int operand1 = (int)getConstValue(handles[0].getInstruction(), cpgen);
         int operand2 = (int)getConstValue(handles[1].getInstruction(), cpgen);
@@ -235,17 +235,17 @@ public class ConstantFolder {
         InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
         boolean follow = false;
 
-        if (instName.equals("if_icmpeq")) {
+        if (opName.equals("if_icmpeq")) {
             follow = operand1 == operand2;
-        } else if (instName.equals("if_icmpne")) {
+        } else if (opName.equals("if_icmpne")) {
             follow = operand1 != operand2;
-        } else if (instName.equals("if_icmplt")) {
+        } else if (opName.equals("if_icmplt")) {
             follow = operand1 < operand2;
-        } else if (instName.equals("if_icmple")) {
+        } else if (opName.equals("if_icmple")) {
             follow = operand1 <= operand2;
-        } else if (instName.equals("if_icmpgt")) {
+        } else if (opName.equals("if_icmpgt")) {
             follow = operand1 > operand2;
-        } else if (instName.equals("if_icmpge")) {
+        } else if (opName.equals("if_icmpge")) {
             follow = operand1 >= operand2;
         } else {
             // Return because we don't want to delete instructions.
@@ -493,6 +493,9 @@ public class ConstantFolder {
             }
             newInstruction = new PUSH(cpgen, value);
         } else if (opName.equals("fcmpg") || opName.equals("fcmpl")) {
+            System.out.println("\n\n\n\n");
+            System.out.println(operator);
+            System.out.println("\n\n\n\n");
             int value;
             if (Float.isNaN((float)a) || Float.isNaN((float)b)) {
                 value = opName.equals("fcmpg") ? 1 : -1;
