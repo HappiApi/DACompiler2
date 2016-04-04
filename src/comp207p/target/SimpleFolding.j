@@ -121,3 +121,18 @@
     invokevirtual java/io/PrintStream/println(D)V
     return
 .end method
+
+.method public deadCode()V
+    .limit stack 5
+
+    getstatic java/lang/System/out Ljava/io/PrintStream;
+    sipush 5
+	goto Operator
+	bipush 3
+	bipush 2
+	bipush 1
+Operator:
+    i2d
+    invokevirtual java/io/PrintStream/println(D)V
+    return
+.end method

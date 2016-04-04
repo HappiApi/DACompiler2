@@ -4,26 +4,44 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.Code;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.ArithmeticInstruction;
 import org.apache.bcel.generic.ClassGen;
+import org.apache.bcel.generic.CodeExceptionGen;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.ConstantPushInstruction;
+import org.apache.bcel.generic.IINC;
+import org.apache.bcel.generic.IndexedInstruction;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionList;
-import org.apache.bcel.generic.LDC;
+import org.apache.bcel.generic.InstructionTargeter;
+import org.apache.bcel.generic.ISTORE;
 import org.apache.bcel.generic.LDC2_W;
-import org.apache.bcel.generic.PUSH;
+import org.apache.bcel.generic.LDC;
+import org.apache.bcel.generic.LocalVariableGen;
+import org.apache.bcel.generic.LocalVariableInstruction;
+import org.apache.bcel.generic.LoadInstruction;
+import org.apache.bcel.generic.StoreInstruction;
 import org.apache.bcel.generic.MethodGen;
+import org.apache.bcel.generic.PUSH;
 import org.apache.bcel.generic.TargetLostException;
 import org.apache.bcel.generic.Type;
 import org.apache.bcel.generic.TypedInstruction;
 import org.apache.bcel.util.InstructionFinder;
+import org.apache.bcel.verifier.structurals.ControlFlowGraph;
+import org.apache.bcel.verifier.structurals.InstructionContext;
 
 public class ConstantFolder {
 
@@ -40,6 +58,13 @@ public class ConstantFolder {
                                   "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
                                   "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR)";
 
+    ClassGen cgen;
+    ConstantPoolGen cpgen;
+
+    MethodGen mgen;
+    CodeExceptionGen[] cegen;
+    LocalVariableGen[] lvgen;
+
     public ConstantFolder(String classFilePath) {
         try {
             this.parser = new ClassParser(classFilePath);
@@ -50,20 +75,20 @@ public class ConstantFolder {
     }
 
     public void optimize() {
-        ClassGen cgen = new ClassGen(original);
-        ConstantPoolGen cpgen = cgen.getConstantPool();
+        cgen = new ClassGen(original);
+        cpgen = cgen.getConstantPool();
 
         // Implement your optimization here
 
         Method[] methods = cgen.getMethods();
         for (Method m : methods) {
-            this.optimizeMethod(cgen, cpgen, m);
+            this.optimizeMethod(m);
         }
 
         this.optimized = cgen.getJavaClass();
     }
 
-    public void optimizeMethod(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
+    public void optimizeMethod(Method method) {
 
         // Get the Code of the method, which is a collection of bytecode instructions
         Code methodCode = method.getCode();
@@ -73,14 +98,20 @@ public class ConstantFolder {
         InstructionList instList = new InstructionList(methodCode.getCode());
 
         // Initialise a method generator with the original method as the baseline
-        MethodGen methodGen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instList, cpgen);
+        mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instList, cpgen);
+        cegen = mgen.getExceptionHandlers();
+        lvgen = mgen.getLocalVariables();
+
+        System.out.println("\n---\n\033[0;1m" + cgen.getClassName() + "." + mgen.getName() + "\033[0;0m\n");
 
         boolean optimizationOccurred = true;
 
         while (optimizationOccurred) {
             optimizationOccurred = false;
-            optimizationOccurred = this.optimizeAllUnaryExprs(instList, cpgen) || optimizationOccurred;
-            optimizationOccurred = this.optimizeAllBinaryExprs(instList, cpgen) || optimizationOccurred;
+            optimizationOccurred = this.optimizeAllUnaryExprs(instList) || optimizationOccurred;
+            optimizationOccurred = this.optimizeAllBinaryExprs(instList) || optimizationOccurred;
+            optimizationOccurred = this.optimizeDynamicVariables(instList) || optimizationOccurred;
+            optimizationOccurred = this.removeUnreachableCode(instList) || optimizationOccurred;
         }
 
         // setPositions(true) checks whether jump handles
@@ -88,16 +119,16 @@ public class ConstantFolder {
         instList.setPositions(true);
 
         // set max stack/local
-        methodGen.setMaxStack();
-        methodGen.setMaxLocals();
+        mgen.setMaxStack();
+        mgen.setMaxLocals();
 
         // generate the new method with replaced iconst
-        Method newMethod = methodGen.getMethod();
+        Method newMethod = mgen.getMethod();
         // replace the method in the original class
         cgen.replaceMethod(method, newMethod);
     }
 
-    public boolean optimizeAllUnaryExprs(InstructionList instList, ConstantPoolGen cpgen) {
+    public boolean optimizeAllUnaryExprs(InstructionList instList) {
 
         // Use InstructionFinder to search for a pattern of instructions
         // (in our case, a constant unary expression)
@@ -111,7 +142,7 @@ public class ConstantFolder {
             InstructionFinder f = new InstructionFinder(instList);
             for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
                 InstructionHandle[] handles = (InstructionHandle[])e.next();
-                boolean optimizedThisPass = this.optimizeConstantUnaryExpr(handles, instList, cpgen);
+                boolean optimizedThisPass = this.optimizeConstantUnaryExpr(handles, instList);
                 optimizedLastPass = optimizedLastPass || optimizedThisPass;
                 somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
             }
@@ -120,44 +151,50 @@ public class ConstantFolder {
         return somethingWasOptimized;
     }
 
-    public boolean optimizeConstantUnaryExpr(InstructionHandle[] handles, InstructionList instList, ConstantPoolGen cpgen) {
+    public boolean optimizeConstantUnaryExpr(InstructionHandle[] handles, InstructionList instList) {
 
         InstructionHandle operand = handles[0];
         InstructionHandle operator = handles[1];
+
+        if (operator.hasTargeters()) {
+            return false;
+        }
 
         String opName = operator.getInstruction().getName();
         Object value = getConstValue(operand.getInstruction(), cpgen);
         Number number = (Number)value;
 
+        PUSH newInstruction;
+
         // Negation
 
         if (opName.equals("ineg")) {
-            instList.insert(operand, new PUSH(cpgen, -(int)value));
+            newInstruction = new PUSH(cpgen, -(int)value);
         } else if (opName.equals("lneg")) {
-            instList.insert(operand, new PUSH(cpgen, -(long)value));
+            newInstruction = new PUSH(cpgen, -(long)value);
         } else if (opName.equals("fneg")) {
-            instList.insert(operand, new PUSH(cpgen, -(float)value));
+            newInstruction = new PUSH(cpgen, -(float)value);
         } else if (opName.equals("dneg")) {
-            instList.insert(operand, new PUSH(cpgen, -(double)value));
+            newInstruction = new PUSH(cpgen, -(double)value);
 
         // Type conversion
 
         } else if (opName.equals("l2i") ||
                    opName.equals("f2i") ||
                    opName.equals("d2i")) {
-            instList.insert(operand, new PUSH(cpgen, number.intValue()));
+            newInstruction = new PUSH(cpgen, number.intValue());
         } else if (opName.equals("i2l") ||
                    opName.equals("f2l") ||
                    opName.equals("d2l")) {
-            instList.insert(operand, new PUSH(cpgen, number.longValue()));
+            newInstruction = new PUSH(cpgen, number.longValue());
         } else if (opName.equals("i2f") ||
                    opName.equals("l2f") ||
                    opName.equals("d2f")) {
-            instList.insert(operand, new PUSH(cpgen, number.floatValue()));
+            newInstruction = new PUSH(cpgen, number.floatValue());
         } else if (opName.equals("i2d") ||
                    opName.equals("l2d") ||
                    opName.equals("f2d")) {
-            instList.insert(operand, new PUSH(cpgen, number.doubleValue()));
+            newInstruction = new PUSH(cpgen, number.doubleValue());
 
         } else {
             // reached when instruction is not handled, e.g. bitwise operators or shifts.
@@ -166,20 +203,24 @@ public class ConstantFolder {
             return false;
         }
 
-        // Delete the 2 instructions making up the expression
-        try {
-            instList.delete(operand);
-            instList.delete(operator);
-        } catch (TargetLostException e) {
-            e.printStackTrace();
-        }
+        InstructionHandle newInstHandle = instList.insert(operand, newInstruction);
 
-        System.out.println("Optimised: " + opName);
+        System.out.print("Replacing: \033[0;31m");
+        System.out.print(operand);
+        System.out.print("\n           ");
+        System.out.print(operator);
+        System.out.print("\033[0m\n     with: \033[0;32m");
+        System.out.print(newInstHandle);
+        System.out.println("\033[0m\n");
+
+        // Delete the 2 instructions making up the expression
+        deleteInstruction(operand, newInstHandle, instList);
+        deleteInstruction(operator, newInstHandle, instList);
 
         return true;
     }
 
-    public boolean optimizeAllBinaryExprs(InstructionList instList, ConstantPoolGen cpgen) {
+    public boolean optimizeAllBinaryExprs(InstructionList instList) {
 
         // Use InstructionFinder to search for a pattern of instructions
         // (in our case, a constant binary expression)
@@ -193,7 +234,7 @@ public class ConstantFolder {
             InstructionFinder f = new InstructionFinder(instList);
             for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
                 InstructionHandle[] handles = (InstructionHandle[])e.next();
-                boolean optimizedThisPass = this.optimizeConstantBinaryExpr(handles, instList, cpgen);
+                boolean optimizedThisPass = this.optimizeConstantBinaryExpr(handles, instList);
                 optimizedLastPass = optimizedLastPass || optimizedThisPass;
                 somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
             }
@@ -205,92 +246,98 @@ public class ConstantFolder {
     // Converts binary arithmetic operation to a single constant.
     // `handles` expects the 3 instructions (2 operands + 1 operation) that make up the binary expression.
     // It mutates the instruction list and (if necessary) constant pool.
-    public boolean optimizeConstantBinaryExpr(InstructionHandle[] handles, InstructionList instList, ConstantPoolGen cpgen) {
+    public boolean optimizeConstantBinaryExpr(InstructionHandle[] handles, InstructionList instList) {
 
         InstructionHandle operand1 = handles[0];
         InstructionHandle operand2 = handles[1];
         InstructionHandle operator = handles[2];
+
+        if (operand2.hasTargeters() || operator.hasTargeters()) {
+            return false;
+        }
 
         String opName = operator.getInstruction().getName();
 
         Object a = getConstValue(operand1.getInstruction(), cpgen);
         Object b = getConstValue(operand2.getInstruction(), cpgen);
 
+        PUSH newInstruction;
+
         // Integer operations
 
         if (opName.equals("iadd")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a + (int)b));
+            newInstruction = new PUSH(cpgen, (int)a + (int)b);
         } else if (opName.equals("isub")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a - (int)b));
+            newInstruction = new PUSH(cpgen, (int)a - (int)b);
         } else if (opName.equals("imul")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a * (int)b));
+            newInstruction = new PUSH(cpgen, (int)a * (int)b);
         } else if (opName.equals("idiv")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a / (int)b));
+            newInstruction = new PUSH(cpgen, (int)a / (int)b);
         } else if (opName.equals("irem")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a % (int)b));
+            newInstruction = new PUSH(cpgen, (int)a % (int)b);
         } else if (opName.equals("iand")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a & (int)b));
+            newInstruction = new PUSH(cpgen, (int)a & (int)b);
         } else if (opName.equals("ior")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a | (int)b));
+            newInstruction = new PUSH(cpgen, (int)a | (int)b);
         } else if (opName.equals("ixor")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a ^ (int)b));
+            newInstruction = new PUSH(cpgen, (int)a ^ (int)b);
         } else if (opName.equals("ishl")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a << (int)b));
+            newInstruction = new PUSH(cpgen, (int)a << (int)b);
         } else if (opName.equals("ishr")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a >> (int)b));
+            newInstruction = new PUSH(cpgen, (int)a >> (int)b);
         } else if (opName.equals("iushr")) {
-            instList.insert(operand1, new PUSH(cpgen, (int)a >>> (int)b));
+            newInstruction = new PUSH(cpgen, (int)a >>> (int)b);
 
         // Long operations
 
         } else if (opName.equals("ladd")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a + (long)b));
+            newInstruction = new PUSH(cpgen, (long)a + (long)b);
         } else if (opName.equals("lsub")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a - (long)b));
+            newInstruction = new PUSH(cpgen, (long)a - (long)b);
         } else if (opName.equals("lmul")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a * (long)b));
+            newInstruction = new PUSH(cpgen, (long)a * (long)b);
         } else if (opName.equals("ldiv")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a / (long)b));
+            newInstruction = new PUSH(cpgen, (long)a / (long)b);
         } else if (opName.equals("lrem")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a % (long)b));
+            newInstruction = new PUSH(cpgen, (long)a % (long)b);
         } else if (opName.equals("land")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a & (long)b));
+            newInstruction = new PUSH(cpgen, (long)a & (long)b);
         } else if (opName.equals("lor")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a | (long)b));
+            newInstruction = new PUSH(cpgen, (long)a | (long)b);
         } else if (opName.equals("lxor")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a ^ (long)b));
+            newInstruction = new PUSH(cpgen, (long)a ^ (long)b);
         } else if (opName.equals("lshl")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a << (long)b));
+            newInstruction = new PUSH(cpgen, (long)a << (long)b);
         } else if (opName.equals("lshr")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a >> (long)b));
+            newInstruction = new PUSH(cpgen, (long)a >> (long)b);
         } else if (opName.equals("lushr")) {
-            instList.insert(operand1, new PUSH(cpgen, (long)a >>> (long)b));
+            newInstruction = new PUSH(cpgen, (long)a >>> (long)b);
 
         // Float operations
 
         } else if (opName.equals("fadd")) {
-            instList.insert(operand1, new PUSH(cpgen, (float)a + (float)b));
+            newInstruction = new PUSH(cpgen, (float)a + (float)b);
         } else if (opName.equals("fsub")) {
-            instList.insert(operand1, new PUSH(cpgen, (float)a - (float)b));
+            newInstruction = new PUSH(cpgen, (float)a - (float)b);
         } else if (opName.equals("fmul")) {
-            instList.insert(operand1, new PUSH(cpgen, (float)a * (float)b));
+            newInstruction = new PUSH(cpgen, (float)a * (float)b);
         } else if (opName.equals("fdiv")) {
-            instList.insert(operand1, new PUSH(cpgen, (float)a / (float)b));
+            newInstruction = new PUSH(cpgen, (float)a / (float)b);
         } else if (opName.equals("frem")) {
-            instList.insert(operand1, new PUSH(cpgen, (float)a % (float)b));
+            newInstruction = new PUSH(cpgen, (float)a % (float)b);
 
         // Double operations
 
         } else if (opName.equals("dadd")) {
-            instList.insert(operand1, new PUSH(cpgen, (double)a + (double)b));
+            newInstruction = new PUSH(cpgen, (double)a + (double)b);
         } else if (opName.equals("dsub")) {
-            instList.insert(operand1, new PUSH(cpgen, (double)a - (double)b));
+            newInstruction = new PUSH(cpgen, (double)a - (double)b);
         } else if (opName.equals("dmul")) {
-            instList.insert(operand1, new PUSH(cpgen, (double)a * (double)b));
+            newInstruction = new PUSH(cpgen, (double)a * (double)b);
         } else if (opName.equals("ddiv")) {
-            instList.insert(operand1, new PUSH(cpgen, (double)a / (double)b));
+            newInstruction = new PUSH(cpgen, (double)a / (double)b);
         } else if (opName.equals("drem")) {
-            instList.insert(operand1, new PUSH(cpgen, (double)a % (double)b));
+            newInstruction = new PUSH(cpgen, (double)a % (double)b);
 
         } else {
             // reached when instruction is not handled
@@ -299,16 +346,22 @@ public class ConstantFolder {
             return false;
         }
 
-        // Delete the 3 instructions making up the expression
-        try {
-            instList.delete(operand1);
-            instList.delete(operand2);
-            instList.delete(operator);
-        } catch (TargetLostException e) {
-            e.printStackTrace();
-        }
+        InstructionHandle newInstHandle = instList.insert(operand1, newInstruction);
 
-        System.out.println("Optimised: " + opName);
+        System.out.print("Replacing: \033[0;31m");
+        System.out.print(operand1);
+        System.out.print("\n           ");
+        System.out.print(operand2);
+        System.out.print("\n           ");
+        System.out.print(operator);
+        System.out.print("\033[0m\n     with: \033[0;32m");
+        System.out.print(newInstHandle);
+        System.out.println("\033[0m\n");
+
+        // Delete the 3 instructions making up the expression
+        deleteInstruction(operand1, newInstHandle, instList);
+        deleteInstruction(operand2, newInstHandle, instList);
+        deleteInstruction(operator, newInstHandle, instList);
 
         return true;
     }
@@ -338,6 +391,239 @@ public class ConstantFolder {
     //         return Type.UNKNOWN;
     //     }
     // }
+
+    public boolean removeUnreachableCode(InstructionList instList) {
+        ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
+        for (InstructionHandle instHandle : instList.getInstructionHandles()) {
+            if (flowGraph.isDead(instHandle)) {
+                try {
+                    System.out.print("Dead code: \033[0;31m");
+                    System.out.print(instHandle);
+                    System.out.println("\033[0m\n");
+                    instList.delete(instHandle);
+                    return true;
+                } catch (TargetLostException e) {
+                    // do nothing
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean optimizeDynamicVariables(InstructionList instList) {
+
+        InstructionHandle[] instHandles = instList.getInstructionHandles();
+
+        instList.setPositions(true);
+        DependencyMap loadInstructions = new DependencyMap(instList);
+        DependencyMap storeInstructions = new DependencyMap(instList);
+
+        String pattern = "(StoreInstruction|IINC)";
+        InstructionFinder finder = new InstructionFinder(instList);
+
+        for (Iterator<?> iter = finder.search(pattern); iter.hasNext(); ) {
+            InstructionHandle[] handles = (InstructionHandle[])iter.next();
+            InstructionHandle handle = handles[0];
+            buildDynamicVarsDepdendencies(handle, loadInstructions, storeInstructions);
+        }
+
+        boolean somethingWasOptimized = false;
+
+        for (InstructionHandle storeInstHandle : storeInstructions.keySet()) {
+            // System.out.println("Instruction: ");
+            // System.out.println(storeInstHandle);
+            // System.out.println("Dependencies: ");
+            // System.out.println(storeInstructions.get(storeInstHandle));
+            somethingWasOptimized = optimizeStoreInstruction(storeInstHandle, instList, loadInstructions, storeInstructions) || somethingWasOptimized;
+        }
+
+        return somethingWasOptimized;
+    }
+
+    public void buildDynamicVarsDepdendencies(InstructionHandle storeInstHandle, DependencyMap loadInstructions, DependencyMap storeInstructions) {
+
+        LocalVariableInstruction storeInstruction = (LocalVariableInstruction)storeInstHandle.getInstruction();
+        int storeInstructionIndex = storeInstruction.getIndex();
+
+        storeInstructions.addKey(storeInstHandle);
+
+        ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
+        Set<InstructionHandle> visited = new HashSet<InstructionHandle>();
+        Stack<InstructionContext> frontier = new Stack<InstructionContext>();
+
+        InstructionHandle nextInstHandle = storeInstHandle.getNext();
+        frontier.push(flowGraph.contextOf(nextInstHandle));
+
+        while (!frontier.empty()) {
+
+            InstructionContext context = frontier.pop();
+            InstructionHandle instHandle = context.getInstruction();
+            Instruction instruction = instHandle.getInstruction();
+
+            // System.out.print("Instruction: ");
+            // System.out.println(instruction);
+
+            if (instruction instanceof LoadInstruction ||
+                instruction instanceof IINC) {
+                int index = ((IndexedInstruction)instruction).getIndex();
+                // System.out.print("Found load instruction: ");
+                // System.out.println(instruction);
+                // System.out.println("Index: " + index);
+                // System.out.println("StoreInstIndex: " + storeInstructionIndex);
+                if (index == storeInstructionIndex) {
+                    // System.out.println("pushed");
+                    loadInstructions.addDependency(instHandle, storeInstHandle);
+                    storeInstructions.addDependency(storeInstHandle, instHandle);
+                }
+            }
+
+            if (instruction instanceof StoreInstruction ||
+                instruction instanceof IINC) {
+                int index = ((IndexedInstruction)instruction).getIndex();
+                // System.out.print("Found store instruction: ");
+                // System.out.println(instruction);
+                // System.out.println("Index: " + index);
+                // System.out.println("StoreInstIndex: " + storeInstructionIndex);
+                if (index == storeInstructionIndex) {
+                    // System.out.println("Found same index, stoppping");
+                    // System.out.println(storeInstHandle);
+                    // System.out.println(instruction);
+                    break;
+                }
+            }
+
+            for (InstructionContext nextContext : context.getSuccessors()) {
+                InstructionHandle nextHandle = nextContext.getInstruction();
+                if (!visited.contains(nextHandle)) {
+                    frontier.push(nextContext);
+                    visited.add(nextHandle);
+                }
+            }
+        }
+    }
+
+    public boolean optimizeStoreInstruction(InstructionHandle storeInstHandle, InstructionList instList, DependencyMap loadInstructions, DependencyMap storeInstructions) {
+
+        LocalVariableInstruction storeInstruction = (LocalVariableInstruction)storeInstHandle.getInstruction();
+        Collection<InstructionHandle> loadDependencies = storeInstructions.get(storeInstHandle);
+
+        if (storeInstruction instanceof IINC) {
+            // System.out.print("SKIPPING INCREMENT: ");
+            // System.out.print(storeInstHandle);
+            // System.out.println("\n");
+            return false;
+        } else if (!isConstantInstruction(storeInstHandle.getPrev()) ||
+            storeInstHandle.hasTargeters()) {
+            return false;
+        }
+
+        if (!allLoadsCanBeOptimized(loadDependencies, loadInstructions)) {
+            return false;
+        }
+
+        // System.out.println("Optimizing store instruction:");
+        // System.out.println(storeInstHandle);
+
+        InstructionHandle constantInstHandle = storeInstHandle.getPrev();
+        Instruction constantInstruction = constantInstHandle.getInstruction().copy();
+
+        for (InstructionHandle loadInstHandle : loadDependencies) {
+
+            Instruction loadInstruction = loadInstHandle.getInstruction();
+            InstructionHandle newTarget;
+
+            if (loadInstruction instanceof IINC) {
+
+                IINC iinc = (IINC)loadInstruction;
+                int constValue = (int)getConstValue(constantInstruction, cpgen);
+                int value = constValue + iinc.getIncrement();
+                newTarget = instList.insert(loadInstHandle, new PUSH(cpgen, value));
+                InstructionHandle newStore = instList.append(newTarget, new ISTORE(iinc.getIndex()));
+
+                System.out.print("Replacing: \033[0;31m");
+                System.out.print(loadInstHandle);
+                System.out.print("\033[0m\n     with: \033[0;32m");
+                System.out.print(newTarget);
+                System.out.print("\n           ");
+                System.out.print(newStore);
+                System.out.println("\033[0m\n");
+
+            } else {
+
+                newTarget = instList.insert(loadInstHandle, constantInstruction.copy());
+
+                System.out.print("Replacing: \033[0;31m");
+                System.out.print(loadInstHandle);
+                System.out.print("\033[0m\n     with: \033[0;32m");
+                System.out.print(newTarget);
+                System.out.println("\033[0m\n");
+            }
+
+            deleteInstruction(loadInstHandle, newTarget, instList);
+        }
+
+        System.out.print("Removing:  \033[0;31m");
+        System.out.print(constantInstHandle);
+        System.out.print("\n           ");
+        System.out.print(storeInstHandle);
+        System.out.println("\033[0m\n");
+
+        InstructionHandle newTarget = storeInstHandle.getNext();
+        deleteInstruction(constantInstHandle, newTarget, instList);
+        deleteInstruction(storeInstHandle, newTarget, instList);
+
+        return true;
+    }
+
+    public boolean isConstantInstruction(InstructionHandle instHandle) {
+        Instruction instruction = instHandle.getInstruction();
+        return instruction instanceof ConstantPushInstruction ||
+               instruction instanceof LDC ||
+               instruction instanceof LDC2_W;
+    }
+
+    public boolean allLoadsCanBeOptimized(Collection<InstructionHandle> loadDependencies, DependencyMap loadInstructions) {
+        for (InstructionHandle loadInstHandle : loadDependencies) {
+            if (!(loadInstructions.containsKey(loadInstHandle) &&
+                  loadInstructions.get(loadInstHandle).size() == 1)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void deleteInstruction(InstructionHandle instHandle, InstructionHandle newTarget, InstructionList instList) {
+        instList.redirectBranches(instHandle, newTarget);
+        instList.redirectExceptionHandlers(cegen, instHandle, newTarget);
+        instList.redirectLocalVariables(lvgen, instHandle, newTarget);
+        try {
+            instList.delete(instHandle);
+        } catch (TargetLostException e) {
+            InstructionHandle[] targets = e.getTargets();
+            System.out.println("\nINITIAL ERROR: Failed to delete instruction");
+            for (int i = 0; i < targets.length; i++) {
+                InstructionTargeter[] targeters = targets[i].getTargeters();
+                for (int j = 0; j < targeters.length; j++) {
+                    targeters[j].updateTarget(targets[i], newTarget);
+                }
+            }
+            try {
+                System.out.println("ERROR RESOLVED: Instruction deleted");
+                instList.delete(instHandle);
+            } catch (TargetLostException err) {
+                System.out.println("\nTERMINAL ERROR: Failed to delete instruction:");
+                System.out.println(instHandle);
+                System.out.println("Targeters:");
+                InstructionHandle[] ts = err.getTargets();
+                for (int i = 0; i < ts.length; i++) {
+                    InstructionTargeter[] targeters = ts[i].getTargeters();
+                    for (int j = 0; j < targeters.length; j++) {
+                        System.out.println(targeters[j]);
+                    }
+                }
+            }
+        }
+    }
 
     public void write(String optimisedFilePath) {
         this.optimize();
