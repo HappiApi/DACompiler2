@@ -571,6 +571,7 @@ public class ConstantFolder {
 
     public boolean removeDeadCode(InstructionList instList) {
         ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
+        boolean somethingWasOptimized = false;
         for (InstructionHandle instHandle : instList.getInstructionHandles()) {
             boolean isDead = false;
             if (instHandle.getInstruction() instanceof GotoInstruction) {
@@ -583,14 +584,14 @@ public class ConstantFolder {
                 isDead = true;
             }
             if (isDead) {
+                somethingWasOptimized = true;
                 System.out.print("Dead code: \033[0;31m");
                 System.out.print(instHandle);
                 System.out.println("\033[0m\n");
                 deleteInstruction(instHandle, instHandle.getNext(), instList);
-                return true;
             }
         }
-        return false;
+        return somethingWasOptimized;
     }
 
     public boolean optimizeDynamicVariables(InstructionList instList) {
