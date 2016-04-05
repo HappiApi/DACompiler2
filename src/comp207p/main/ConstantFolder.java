@@ -575,8 +575,8 @@ public class ConstantFolder {
         InstructionHandle[] instHandles = instList.getInstructionHandles();
 
         instList.setPositions(true);
-        DependencyMap loadInstructions = new DependencyMap();
-        DependencyMap storeInstructions = new DependencyMap();
+        ReachingMap loadReachingMap = new ReachingMap();
+        ReachingMap storeReachingMap = new ReachingMap();
 
         String pattern = "(StoreInstruction|IINC)";
         InstructionFinder finder = new InstructionFinder(instList);
@@ -584,24 +584,24 @@ public class ConstantFolder {
         for (Iterator<?> iter = finder.search(pattern); iter.hasNext(); ) {
             InstructionHandle[] handles = (InstructionHandle[])iter.next();
             InstructionHandle handle = handles[0];
-            buildDynamicVarsDepdendencies(handle, loadInstructions, storeInstructions);
+            buildReachingMaps(handle, loadReachingMap, storeReachingMap);
         }
 
         boolean somethingWasOptimized = false;
 
-        for (InstructionHandle storeInstHandle : storeInstructions.keySet()) {
-            somethingWasOptimized = optimizeStoreInstruction(storeInstHandle, instList, loadInstructions, storeInstructions) || somethingWasOptimized;
+        for (InstructionHandle storeInstHandle : storeReachingMap.keySet()) {
+            somethingWasOptimized = optimizeStoreInstruction(storeInstHandle, instList, loadReachingMap, storeReachingMap) || somethingWasOptimized;
         }
 
         return somethingWasOptimized;
     }
 
-    public void buildDynamicVarsDepdendencies(InstructionHandle storeInstHandle, DependencyMap loadInstructions, DependencyMap storeInstructions) {
+    public void buildReachingMaps(InstructionHandle storeInstHandle, ReachingMap loadReachingMap, ReachingMap storeReachingMap) {
 
         LocalVariableInstruction storeInstruction = (LocalVariableInstruction)storeInstHandle.getInstruction();
         int storeInstructionIndex = storeInstruction.getIndex();
 
-        storeInstructions.addKey(storeInstHandle);
+        storeReachingMap.addKey(storeInstHandle);
 
         ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
         Set<InstructionHandle> visited = new HashSet<InstructionHandle>();
@@ -620,8 +620,8 @@ public class ConstantFolder {
                 instruction instanceof IINC) {
                 int index = ((IndexedInstruction)instruction).getIndex();
                 if (index == storeInstructionIndex) {
-                    loadInstructions.addDependency(instHandle, storeInstHandle);
-                    storeInstructions.addDependency(storeInstHandle, instHandle);
+                    loadReachingMap.addReaching(instHandle, storeInstHandle);
+                    storeReachingMap.addReaching(storeInstHandle, instHandle);
                 }
             }
 
@@ -643,10 +643,10 @@ public class ConstantFolder {
         }
     }
 
-    public boolean optimizeStoreInstruction(InstructionHandle storeInstHandle, InstructionList instList, DependencyMap loadInstructions, DependencyMap storeInstructions) {
+    public boolean optimizeStoreInstruction(InstructionHandle storeInstHandle, InstructionList instList, ReachingMap loadReachingMap, ReachingMap storeReachingMap) {
 
         LocalVariableInstruction storeInstruction = (LocalVariableInstruction)storeInstHandle.getInstruction();
-        Collection<InstructionHandle> loadDependencies = storeInstructions.get(storeInstHandle);
+        Collection<InstructionHandle> loadsReached = storeReachingMap.get(storeInstHandle);
 
         if (storeInstruction instanceof IINC) {
             return false;
@@ -655,14 +655,14 @@ public class ConstantFolder {
             return false;
         }
 
-        if (!allLoadsCanBeOptimized(loadDependencies, loadInstructions)) {
+        if (!allLoadsCanBeOptimized(loadsReached, loadReachingMap)) {
             return false;
         }
 
         InstructionHandle constantInstHandle = storeInstHandle.getPrev();
         Instruction constantInstruction = constantInstHandle.getInstruction().copy();
 
-        for (InstructionHandle loadInstHandle : loadDependencies) {
+        for (InstructionHandle loadInstHandle : loadsReached) {
 
             Instruction loadInstruction = loadInstHandle.getInstruction();
             InstructionHandle newTarget;
@@ -718,10 +718,10 @@ public class ConstantFolder {
                instruction instanceof LDC2_W;
     }
 
-    public boolean allLoadsCanBeOptimized(Collection<InstructionHandle> loadDependencies, DependencyMap loadInstructions) {
-        for (InstructionHandle loadInstHandle : loadDependencies) {
-            if (!(loadInstructions.containsKey(loadInstHandle) &&
-                  loadInstructions.get(loadInstHandle).size() == 1)) {
+    public boolean allLoadsCanBeOptimized(Collection<InstructionHandle> loadsReached, ReachingMap loadReachingMap) {
+        for (InstructionHandle loadInstHandle : loadsReached) {
+            if (!(loadReachingMap.containsKey(loadInstHandle) &&
+                  loadReachingMap.get(loadInstHandle).size() == 1)) {
                 return false;
             }
         }
