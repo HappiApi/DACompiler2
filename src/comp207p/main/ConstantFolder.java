@@ -62,12 +62,12 @@ public class ConstantFolder {
 
     static final String reConstPushInstruction = "(BIPUSH|DCONST|FCONST|FCONST_2|ICONST|LCONST|SIPUSH|LDC|LDC2_W)"; // LDC_W is a subclass of LDC, so we don't need to include it
     static final String reUnaryInstruction = "(DNEG|FNEG|INEG|LNEG|" +
-                                             "I2L|I2F|I2D|L2I|L2F|L2D|F2I|F2L|F2D|D2I|D2L|D2F)";
+                                              "I2L|I2F|I2D|L2I|L2F|L2D|F2I|F2L|F2D|D2I|D2L|D2F)";
     static final String reBinaryInstruction = "(DADD|DDIV|DMUL|DREM|DSUB|" +
-                                              "FADD|FDIV|FMUL|FREM|FSUB|" +
-                                              "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
-                                              "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR|" +
-                                              "DCMPG|DCMPL|FCMPG|FCMPL|LCMP)";
+                                               "FADD|FDIV|FMUL|FREM|FSUB|" +
+                                               "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
+                                               "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR|" +
+                                               "DCMPG|DCMPL|FCMPG|FCMPL|LCMP)";
     static final String reUnaryComparison = "(IFEQ|IFGE|IFGT|IFLE|IFLT|IFNE)";
     static final String reBinaryComparison = "(IF_ICMPEQ|IF_ICMPGE|IF_ICMPGT|IF_ICMPLE|IF_ICMPLT|IF_ICMPNE)";
 
@@ -108,13 +108,18 @@ public class ConstantFolder {
 
         // Initialise a method generator with the original method as the baseline
         mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instList, cpgen);
+
+        // Store CodeExceptionGen and LocalVariableGen to redirect any targets
+        // they have to instructions (deleteInstruction method uses these)
         cegen = mgen.getExceptionHandlers();
         lvgen = mgen.getLocalVariables();
 
+        // Print the class and method name for debugging purposes
         System.out.println("\n---\n\033[0;1m" + cgen.getClassName() + "." + mgen.getName() + "\033[0;0m\n");
 
         boolean optimizationOccurred = true;
 
+        // Repeatedly apply optimisations until no optimisations are applied in the last pass.
         while (optimizationOccurred) {
             optimizationOccurred = false;
             optimizationOccurred = this.optimizeAllUnaryExprs(instList) || optimizationOccurred;
@@ -139,8 +144,7 @@ public class ConstantFolder {
 
     public boolean optimizeAllUnaryExprs(InstructionList instList) {
 
-        // Use InstructionFinder to search for a pattern of instructions
-        // (in our case, a constant unary expression)
+        // Constant unary expression pattern
         String pattern = reConstPushInstruction + " " + reUnaryInstruction;
 
         boolean somethingWasOptimized = false;
@@ -160,6 +164,7 @@ public class ConstantFolder {
         InstructionHandle operand = handles[0];
         InstructionHandle operator = handles[1];
 
+        // If the operator has targeters, removing it could change the semantics of our program.
         if (operator.hasTargeters()) {
             return false;
         }
@@ -201,7 +206,7 @@ public class ConstantFolder {
             newInstruction = new PUSH(cpgen, number.doubleValue());
 
         } else {
-            // reached when instruction is not handled, e.g. bitwise operators or shifts.
+            // reached when instruction is not handled
             System.out.println("Couldn't optimise: " + opName);
             // return is to prevent deleting instructions, since nothing has been added.
             return false;
@@ -226,8 +231,7 @@ public class ConstantFolder {
 
     public boolean optimizeAllBinaryExprs(InstructionList instList) {
 
-        // Use InstructionFinder to search for a pattern of instructions
-        // (in our case, a constant binary expression)
+        // Constant binary expression pattern
         String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reBinaryInstruction;
 
         boolean somethingWasOptimized = false;
@@ -404,7 +408,7 @@ public class ConstantFolder {
 
     public boolean optimizeAllUnaryComparisons(InstructionList instList) {
 
-        // Use InstructionFinder to search for a pattern of instructions
+        // Unary comparison pattern
         String pattern = reConstPushInstruction + " " + reUnaryComparison;
 
         boolean somethingWasOptimized = false;
@@ -466,7 +470,7 @@ public class ConstantFolder {
 
     public boolean optimizeAllBinaryComparisons(InstructionList instList) {
 
-        // Use InstructionFinder to search for a pattern of instructions
+        // Binary comparison pattern
         String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reBinaryComparison;
 
         boolean somethingWasOptimized = false;
