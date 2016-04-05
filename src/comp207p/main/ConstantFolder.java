@@ -442,7 +442,9 @@ public class ConstantFolder {
         } else if (opName.equals("ifge")) {
             follow = operand >= 0;
         } else {
-            // Return because we don't want to delete instructions.
+            // reached when instruction is not handled
+            System.out.println("Couldn't optimise: " + opName);
+            // return because we don't want to delete instructions
             return false;
         }
 
@@ -503,7 +505,9 @@ public class ConstantFolder {
         } else if (opName.equals("if_icmpge")) {
             follow = operand1 >= operand2;
         } else {
-            // Return because we don't want to delete instructions.
+            // reached when instruction is not handled
+            System.out.println("Couldn't optimise: " + opName);
+            // return because we don't want to delete instructions
             return false;
         }
 
