@@ -269,14 +269,14 @@ public class ConstantFolder {
         InstructionFinder f = new InstructionFinder(instList);
         for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
             InstructionHandle[] handles = (InstructionHandle[])e.next();
-            boolean optimizedThisPass = this.optimizeConstantUnaryExpr(handles, instList);
+            boolean optimizedThisPass = this.optimizeUnaryExpr(handles, instList);
             somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
         }
 
         return somethingWasOptimized;
     }
 
-    public boolean optimizeConstantUnaryExpr(InstructionHandle[] handles, InstructionList instList) {
+    public boolean optimizeUnaryExpr(InstructionHandle[] handles, InstructionList instList) {
 
         InstructionHandle operand = handles[0];
         InstructionHandle operator = handles[1];
@@ -356,7 +356,7 @@ public class ConstantFolder {
         InstructionFinder f = new InstructionFinder(instList);
         for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
             InstructionHandle[] handles = (InstructionHandle[])e.next();
-            boolean optimizedThisPass = this.optimizeConstantBinaryExpr(handles, instList);
+            boolean optimizedThisPass = this.optimizeBinaryExpr(handles, instList);
             somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
         }
 
@@ -366,7 +366,7 @@ public class ConstantFolder {
     // Converts binary arithmetic operation to a single constant.
     // `handles` expects the 3 instructions (2 operands + 1 operation) that make up the binary expression.
     // It mutates the instruction list and (if necessary) constant pool.
-    public boolean optimizeConstantBinaryExpr(InstructionHandle[] handles, InstructionList instList) {
+    public boolean optimizeBinaryExpr(InstructionHandle[] handles, InstructionList instList) {
 
         InstructionHandle operand1 = handles[0];
         InstructionHandle operand2 = handles[1];
