@@ -559,16 +559,6 @@ public class ConstantFolder {
         }
     }
 
-    // Get the type of an instruction - might be useful later on.
-    // public Type getType(Instruction instruction, ConstantPoolGen cpgen) {
-    //     if (instruction instanceof TypedInstruction) {
-    //         TypedInstruction a = (TypedInstruction)instruction;
-    //         return a.getType(cpgen);
-    //     } else {
-    //         return Type.UNKNOWN;
-    //     }
-    // }
-
     public boolean removeDeadCode(InstructionList instList) {
         ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
         boolean somethingWasOptimized = false;
