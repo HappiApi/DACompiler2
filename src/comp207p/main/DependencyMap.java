@@ -18,11 +18,9 @@ import org.apache.bcel.generic.LocalVariableInstruction;
 
 public class DependencyMap {
 
-    InstructionList instList;
     LinkedHashMap<InstructionHandle, Collection<InstructionHandle>> instructionMap;
 
-    public DependencyMap(InstructionList instList) {
-        this.instList = instList;
+    public DependencyMap() {
         this.instructionMap = new LinkedHashMap<InstructionHandle, Collection<InstructionHandle>>();
     }
 

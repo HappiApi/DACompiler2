@@ -589,8 +589,8 @@ public class ConstantFolder {
         InstructionHandle[] instHandles = instList.getInstructionHandles();
 
         instList.setPositions(true);
-        DependencyMap loadInstructions = new DependencyMap(instList);
-        DependencyMap storeInstructions = new DependencyMap(instList);
+        DependencyMap loadInstructions = new DependencyMap();
+        DependencyMap storeInstructions = new DependencyMap();
 
         String pattern = "(StoreInstruction|IINC)";
         InstructionFinder finder = new InstructionFinder(instList);
