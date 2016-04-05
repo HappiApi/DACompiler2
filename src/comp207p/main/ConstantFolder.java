@@ -689,6 +689,7 @@ public class ConstantFolder {
     }
 
     public boolean isConstantInstruction(InstructionHandle instHandle) {
+        if (instHandle == null) return false;
         Instruction instruction = instHandle.getInstruction();
         return instruction instanceof ConstantPushInstruction ||
                instruction instanceof LDC ||
