@@ -24,6 +24,7 @@ import org.apache.bcel.generic.CodeExceptionGen;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.ConstantPushInstruction;
 import org.apache.bcel.generic.GOTO;
+import org.apache.bcel.generic.GotoInstruction;
 import org.apache.bcel.generic.IINC;
 import org.apache.bcel.generic.ISTORE;
 import org.apache.bcel.generic.IfInstruction;
@@ -574,16 +575,22 @@ public class ConstantFolder {
     public boolean removeUnreachableCode(InstructionList instList) {
         ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
         for (InstructionHandle instHandle : instList.getInstructionHandles()) {
-            if (flowGraph.isDead(instHandle)) {
-                try {
-                    System.out.print("Dead code: \033[0;31m");
-                    System.out.print(instHandle);
-                    System.out.println("\033[0m\n");
-                    instList.delete(instHandle);
-                    return true;
-                } catch (TargetLostException e) {
-                    // do nothing
+            boolean isDead = false;
+            if (instHandle.getInstruction() instanceof GotoInstruction) {
+                InstructionHandle target = ((GotoInstruction)instHandle.getInstruction()).getTarget();
+                if (target.equals(instHandle.getNext())) {
+                    isDead = true;
                 }
+            }
+            if (flowGraph.isDead(instHandle)) {
+                isDead = true;
+            }
+            if (isDead) {
+                System.out.print("Dead code: \033[0;31m");
+                System.out.print(instHandle);
+                System.out.println("\033[0m\n");
+                deleteInstruction(instHandle, instHandle.getNext(), instList);
+                return true;
             }
         }
         return false;
