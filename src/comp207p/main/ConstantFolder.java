@@ -88,13 +88,16 @@ public class ConstantFolder {
 
         Method[] methods = cgen.getMethods();
         for (Method m : methods) {
-            this.optimizeMethod(m);
+            // Get optimised method
+            Method method = this.optimizeMethod(m);
+            // Replace the method in the original class
+            cgen.replaceMethod(m, method);
         }
 
         this.optimized = cgen.getJavaClass();
     }
 
-    public void optimizeMethod(Method method) {
+    public Method optimizeMethod(Method method) {
 
         // Get the Code of the method, which is a collection of bytecode instructions
         Code methodCode = method.getCode();
@@ -130,10 +133,8 @@ public class ConstantFolder {
         mgen.setMaxStack();
         mgen.setMaxLocals();
 
-        // generate the new method with replaced iconst
-        Method newMethod = mgen.getMethod();
-        // replace the method in the original class
-        cgen.replaceMethod(method, newMethod);
+        // return the new, edited method
+        return mgen.getMethod();
     }
 
     public boolean optimizeAllUnaryExprs(InstructionList instList) {
