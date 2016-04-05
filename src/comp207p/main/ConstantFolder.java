@@ -458,9 +458,19 @@ public class ConstantFolder {
             BranchInstruction gotoInstruction = new GOTO(target);
             BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
             newTarget = gotoInstHandle;
+
+            System.out.print("Adding: \033[0;32m");
+            System.out.print(gotoInstHandle);
+            System.out.println("\033[0m");
         } else {
             newTarget = ifInstruction.getNext();
         }
+
+        System.out.print("Removing:  \033[0;31m");
+        System.out.print(handles[0]);
+        System.out.print("\n           ");
+        System.out.print(ifInstruction);
+        System.out.println("\033[0m\n");
 
         deleteInstruction(handles[0], newTarget, instList);
         deleteInstruction(ifInstruction, newTarget, instList);
@@ -521,9 +531,21 @@ public class ConstantFolder {
             BranchInstruction gotoInstruction = new GOTO(target);
             BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
             newTarget = gotoInstHandle;
+
+            System.out.print("Adding: \033[0;32m");
+            System.out.print(gotoInstHandle);
+            System.out.println("\033[0m");
         } else {
             newTarget = ifInstruction.getNext();
         }
+
+        System.out.print("Removing:  \033[0;31m");
+        System.out.print(handles[0]);
+        System.out.print("\n           ");
+        System.out.print(handles[1]);
+        System.out.print("\n           ");
+        System.out.print(ifInstruction);
+        System.out.println("\033[0m\n");
 
         deleteInstruction(handles[0], newTarget, instList);
         deleteInstruction(handles[1], newTarget, instList);
