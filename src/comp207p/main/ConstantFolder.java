@@ -574,7 +574,6 @@ public class ConstantFolder {
 
         InstructionHandle[] instHandles = instList.getInstructionHandles();
 
-        instList.setPositions(true);
         ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
         ReachingMap loadReachingMap = new ReachingMap();
         ReachingMap storeReachingMap = new ReachingMap();
