@@ -141,18 +141,13 @@ public class ConstantFolder {
         // Use InstructionFinder to search for a pattern of instructions
         String pattern = reConstPushInstruction + " " + reUnaryComparison;
 
-        boolean optimizedLastPass = true;
         boolean somethingWasOptimized = false;
 
-        while (optimizedLastPass) {
-            optimizedLastPass = false;
-            InstructionFinder f = new InstructionFinder(instList);
-            for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
-                InstructionHandle[] handles = (InstructionHandle[])e.next();
-                boolean optimizedThisPass = this.optimizeUnaryComparisonExpr(handles, instList);
-                optimizedLastPass = optimizedLastPass || optimizedThisPass;
-                somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
-            }
+        InstructionFinder f = new InstructionFinder(instList);
+        for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+            InstructionHandle[] handles = (InstructionHandle[])e.next();
+            boolean optimizedThisPass = this.optimizeUnaryComparisonExpr(handles, instList);
+            somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
         }
 
         return somethingWasOptimized;
@@ -206,18 +201,13 @@ public class ConstantFolder {
         // Use InstructionFinder to search for a pattern of instructions
         String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reBinaryComparison;
 
-        boolean optimizedLastPass = true;
         boolean somethingWasOptimized = false;
 
-        while (optimizedLastPass) {
-            optimizedLastPass = false;
-            InstructionFinder f = new InstructionFinder(instList);
-            for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
-                InstructionHandle[] handles = (InstructionHandle[])e.next();
-                boolean optimizedThisPass = this.optimizeBinaryComparisonExpr(handles, instList);
-                optimizedLastPass = optimizedLastPass || optimizedThisPass;
-                somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
-            }
+        InstructionFinder f = new InstructionFinder(instList);
+        for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+            InstructionHandle[] handles = (InstructionHandle[])e.next();
+            boolean optimizedThisPass = this.optimizeBinaryComparisonExpr(handles, instList);
+            somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
         }
 
         return somethingWasOptimized;
@@ -274,18 +264,13 @@ public class ConstantFolder {
         // (in our case, a constant unary expression)
         String pattern = reConstPushInstruction + " " + reUnaryInstruction;
 
-        boolean optimizedLastPass = true;
         boolean somethingWasOptimized = false;
 
-        while (optimizedLastPass) {
-            optimizedLastPass = false;
-            InstructionFinder f = new InstructionFinder(instList);
-            for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
-                InstructionHandle[] handles = (InstructionHandle[])e.next();
-                boolean optimizedThisPass = this.optimizeConstantUnaryExpr(handles, instList);
-                optimizedLastPass = optimizedLastPass || optimizedThisPass;
-                somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
-            }
+        InstructionFinder f = new InstructionFinder(instList);
+        for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+            InstructionHandle[] handles = (InstructionHandle[])e.next();
+            boolean optimizedThisPass = this.optimizeConstantUnaryExpr(handles, instList);
+            somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
         }
 
         return somethingWasOptimized;
@@ -366,18 +351,13 @@ public class ConstantFolder {
         // (in our case, a constant binary expression)
         String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reBinaryInstruction;
 
-        boolean optimizedLastPass = true;
         boolean somethingWasOptimized = false;
 
-        while (optimizedLastPass) {
-            optimizedLastPass = false;
-            InstructionFinder f = new InstructionFinder(instList);
-            for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
-                InstructionHandle[] handles = (InstructionHandle[])e.next();
-                boolean optimizedThisPass = this.optimizeConstantBinaryExpr(handles, instList);
-                optimizedLastPass = optimizedLastPass || optimizedThisPass;
-                somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
-            }
+        InstructionFinder f = new InstructionFinder(instList);
+        for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+            InstructionHandle[] handles = (InstructionHandle[])e.next();
+            boolean optimizedThisPass = this.optimizeConstantBinaryExpr(handles, instList);
+            somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
         }
 
         return somethingWasOptimized;
