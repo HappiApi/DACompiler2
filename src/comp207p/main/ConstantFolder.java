@@ -575,6 +575,7 @@ public class ConstantFolder {
         InstructionHandle[] instHandles = instList.getInstructionHandles();
 
         instList.setPositions(true);
+        ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
         ReachingMap loadReachingMap = new ReachingMap();
         ReachingMap storeReachingMap = new ReachingMap();
 
@@ -584,7 +585,7 @@ public class ConstantFolder {
         for (Iterator<?> iter = finder.search(pattern); iter.hasNext(); ) {
             InstructionHandle[] handles = (InstructionHandle[])iter.next();
             InstructionHandle handle = handles[0];
-            buildReachingMaps(handle, loadReachingMap, storeReachingMap);
+            buildReachingMaps(handle, flowGraph, loadReachingMap, storeReachingMap);
         }
 
         boolean somethingWasOptimized = false;
@@ -596,14 +597,13 @@ public class ConstantFolder {
         return somethingWasOptimized;
     }
 
-    public void buildReachingMaps(InstructionHandle storeInstHandle, ReachingMap loadReachingMap, ReachingMap storeReachingMap) {
+    public void buildReachingMaps(InstructionHandle storeInstHandle, ControlFlowGraph flowGraph, ReachingMap loadReachingMap, ReachingMap storeReachingMap) {
 
         LocalVariableInstruction storeInstruction = (LocalVariableInstruction)storeInstHandle.getInstruction();
         int storeInstructionIndex = storeInstruction.getIndex();
 
         storeReachingMap.addKey(storeInstHandle);
 
-        ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
         Set<InstructionHandle> visited = new HashSet<InstructionHandle>();
         Stack<InstructionContext> frontier = new Stack<InstructionContext>();
 
