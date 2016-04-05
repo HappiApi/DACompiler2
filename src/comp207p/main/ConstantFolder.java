@@ -119,7 +119,7 @@ public class ConstantFolder {
             optimizationOccurred = this.optimizeAllUnaryComparisons(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeAllBinaryComparisons(instList) || optimizationOccurred;
             optimizationOccurred = this.optimizeDynamicVariables(instList) || optimizationOccurred;
-            optimizationOccurred = this.removeUnreachableCode(instList) || optimizationOccurred;
+            optimizationOccurred = this.removeDeadCode(instList) || optimizationOccurred;
         }
 
         // setPositions(true) checks whether jump handles
@@ -572,7 +572,7 @@ public class ConstantFolder {
     //     }
     // }
 
-    public boolean removeUnreachableCode(InstructionList instList) {
+    public boolean removeDeadCode(InstructionList instList) {
         ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
         for (InstructionHandle instHandle : instList.getInstructionHandles()) {
             boolean isDead = false;
