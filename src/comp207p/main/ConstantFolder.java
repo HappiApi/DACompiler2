@@ -136,128 +136,6 @@ public class ConstantFolder {
         cgen.replaceMethod(method, newMethod);
     }
 
-    public boolean optimizeAllUnaryComparisons(InstructionList instList) {
-
-        // Use InstructionFinder to search for a pattern of instructions
-        String pattern = reConstPushInstruction + " " + reUnaryComparison;
-
-        boolean somethingWasOptimized = false;
-
-        InstructionFinder f = new InstructionFinder(instList);
-        for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
-            InstructionHandle[] handles = (InstructionHandle[])e.next();
-            boolean optimizedThisPass = this.optimizeUnaryComparisonExpr(handles, instList);
-            somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
-        }
-
-        return somethingWasOptimized;
-    }
-
-    public boolean optimizeUnaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
-
-        InstructionHandle ifInstruction = handles[1];
-        String opName = ifInstruction.getInstruction().getName();
-
-        int operand = (int)getConstValue(handles[0].getInstruction(), cpgen);
-
-        InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
-        boolean follow = false;
-
-        if (opName.equals("ifeq")) {
-            follow = operand == 0;
-        } else if (opName.equals("ifne")) {
-            follow = operand != 0;
-        } else if (opName.equals("iflt")) {
-            follow = operand < 0;
-        } else if (opName.equals("ifle")) {
-            follow = operand <= 0;
-        } else if (opName.equals("ifgt")) {
-            follow = operand > 0;
-        } else if (opName.equals("ifge")) {
-            follow = operand >= 0;
-        } else {
-            // Return because we don't want to delete instructions.
-            return false;
-        }
-
-        InstructionHandle newTarget;
-
-        if (follow) {
-            BranchInstruction gotoInstruction = new GOTO(target);
-            BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
-            newTarget = gotoInstHandle;
-        } else {
-            newTarget = ifInstruction.getNext();
-        }
-
-        deleteInstruction(handles[0], newTarget, instList);
-        deleteInstruction(ifInstruction, newTarget, instList);
-
-        return true;
-    }
-
-    public boolean optimizeAllBinaryComparisons(InstructionList instList) {
-
-        // Use InstructionFinder to search for a pattern of instructions
-        String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reBinaryComparison;
-
-        boolean somethingWasOptimized = false;
-
-        InstructionFinder f = new InstructionFinder(instList);
-        for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
-            InstructionHandle[] handles = (InstructionHandle[])e.next();
-            boolean optimizedThisPass = this.optimizeBinaryComparisonExpr(handles, instList);
-            somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
-        }
-
-        return somethingWasOptimized;
-    }
-
-    public boolean optimizeBinaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
-
-        InstructionHandle ifInstruction = handles[2];
-        String opName = ifInstruction.getInstruction().getName();
-
-        int operand1 = (int)getConstValue(handles[0].getInstruction(), cpgen);
-        int operand2 = (int)getConstValue(handles[1].getInstruction(), cpgen);
-
-        InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
-        boolean follow = false;
-
-        if (opName.equals("if_icmpeq")) {
-            follow = operand1 == operand2;
-        } else if (opName.equals("if_icmpne")) {
-            follow = operand1 != operand2;
-        } else if (opName.equals("if_icmplt")) {
-            follow = operand1 < operand2;
-        } else if (opName.equals("if_icmple")) {
-            follow = operand1 <= operand2;
-        } else if (opName.equals("if_icmpgt")) {
-            follow = operand1 > operand2;
-        } else if (opName.equals("if_icmpge")) {
-            follow = operand1 >= operand2;
-        } else {
-            // Return because we don't want to delete instructions.
-            return false;
-        }
-
-        InstructionHandle newTarget;
-
-        if (follow) {
-            BranchInstruction gotoInstruction = new GOTO(target);
-            BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
-            newTarget = gotoInstHandle;
-        } else {
-            newTarget = ifInstruction.getNext();
-        }
-
-        deleteInstruction(handles[0], newTarget, instList);
-        deleteInstruction(handles[1], newTarget, instList);
-        deleteInstruction(ifInstruction, newTarget, instList);
-
-        return true;
-    }
-
     public boolean optimizeAllUnaryExprs(InstructionList instList) {
 
         // Use InstructionFinder to search for a pattern of instructions
@@ -523,6 +401,128 @@ public class ConstantFolder {
         return true;
     }
 
+    public boolean optimizeAllUnaryComparisons(InstructionList instList) {
+
+        // Use InstructionFinder to search for a pattern of instructions
+        String pattern = reConstPushInstruction + " " + reUnaryComparison;
+
+        boolean somethingWasOptimized = false;
+
+        InstructionFinder f = new InstructionFinder(instList);
+        for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+            InstructionHandle[] handles = (InstructionHandle[])e.next();
+            boolean optimizedThisPass = this.optimizeUnaryComparisonExpr(handles, instList);
+            somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
+        }
+
+        return somethingWasOptimized;
+    }
+
+    public boolean optimizeUnaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
+
+        InstructionHandle ifInstruction = handles[1];
+        String opName = ifInstruction.getInstruction().getName();
+
+        int operand = (int)getConstValue(handles[0].getInstruction(), cpgen);
+
+        InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
+        boolean follow = false;
+
+        if (opName.equals("ifeq")) {
+            follow = operand == 0;
+        } else if (opName.equals("ifne")) {
+            follow = operand != 0;
+        } else if (opName.equals("iflt")) {
+            follow = operand < 0;
+        } else if (opName.equals("ifle")) {
+            follow = operand <= 0;
+        } else if (opName.equals("ifgt")) {
+            follow = operand > 0;
+        } else if (opName.equals("ifge")) {
+            follow = operand >= 0;
+        } else {
+            // Return because we don't want to delete instructions.
+            return false;
+        }
+
+        InstructionHandle newTarget;
+
+        if (follow) {
+            BranchInstruction gotoInstruction = new GOTO(target);
+            BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
+            newTarget = gotoInstHandle;
+        } else {
+            newTarget = ifInstruction.getNext();
+        }
+
+        deleteInstruction(handles[0], newTarget, instList);
+        deleteInstruction(ifInstruction, newTarget, instList);
+
+        return true;
+    }
+
+    public boolean optimizeAllBinaryComparisons(InstructionList instList) {
+
+        // Use InstructionFinder to search for a pattern of instructions
+        String pattern = reConstPushInstruction + " " + reConstPushInstruction + " " + reBinaryComparison;
+
+        boolean somethingWasOptimized = false;
+
+        InstructionFinder f = new InstructionFinder(instList);
+        for (Iterator<?> e = f.search(pattern); e.hasNext(); ) {
+            InstructionHandle[] handles = (InstructionHandle[])e.next();
+            boolean optimizedThisPass = this.optimizeBinaryComparisonExpr(handles, instList);
+            somethingWasOptimized = somethingWasOptimized || optimizedThisPass;
+        }
+
+        return somethingWasOptimized;
+    }
+
+    public boolean optimizeBinaryComparisonExpr(InstructionHandle[] handles, InstructionList instList) {
+
+        InstructionHandle ifInstruction = handles[2];
+        String opName = ifInstruction.getInstruction().getName();
+
+        int operand1 = (int)getConstValue(handles[0].getInstruction(), cpgen);
+        int operand2 = (int)getConstValue(handles[1].getInstruction(), cpgen);
+
+        InstructionHandle target = ((IfInstruction)ifInstruction.getInstruction()).getTarget();
+        boolean follow = false;
+
+        if (opName.equals("if_icmpeq")) {
+            follow = operand1 == operand2;
+        } else if (opName.equals("if_icmpne")) {
+            follow = operand1 != operand2;
+        } else if (opName.equals("if_icmplt")) {
+            follow = operand1 < operand2;
+        } else if (opName.equals("if_icmple")) {
+            follow = operand1 <= operand2;
+        } else if (opName.equals("if_icmpgt")) {
+            follow = operand1 > operand2;
+        } else if (opName.equals("if_icmpge")) {
+            follow = operand1 >= operand2;
+        } else {
+            // Return because we don't want to delete instructions.
+            return false;
+        }
+
+        InstructionHandle newTarget;
+
+        if (follow) {
+            BranchInstruction gotoInstruction = new GOTO(target);
+            BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
+            newTarget = gotoInstHandle;
+        } else {
+            newTarget = ifInstruction.getNext();
+        }
+
+        deleteInstruction(handles[0], newTarget, instList);
+        deleteInstruction(handles[1], newTarget, instList);
+        deleteInstruction(ifInstruction, newTarget, instList);
+
+        return true;
+    }
+
     // Get the value of a ConstantPushInstruction, LDC, or LDC2_W instruction
     public Object getConstValue(Instruction instruction, ConstantPoolGen cpgen) {
         if (instruction instanceof ConstantPushInstruction) {
@@ -537,31 +537,6 @@ public class ConstantFolder {
         } else {
             return null;
         }
-    }
-
-    public boolean removeDeadCode(InstructionList instList) {
-        ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
-        boolean somethingWasOptimized = false;
-        for (InstructionHandle instHandle : instList.getInstructionHandles()) {
-            boolean isDead = false;
-            if (instHandle.getInstruction() instanceof GotoInstruction) {
-                InstructionHandle target = ((GotoInstruction)instHandle.getInstruction()).getTarget();
-                if (target.equals(instHandle.getNext())) {
-                    isDead = true;
-                }
-            }
-            if (flowGraph.isDead(instHandle)) {
-                isDead = true;
-            }
-            if (isDead) {
-                somethingWasOptimized = true;
-                System.out.print("Dead code: \033[0;31m");
-                System.out.print(instHandle);
-                System.out.println("\033[0m\n");
-                deleteInstruction(instHandle, instHandle.getNext(), instList);
-            }
-        }
-        return somethingWasOptimized;
     }
 
     public boolean optimizeDynamicVariables(InstructionList instList) {
@@ -744,6 +719,31 @@ public class ConstantFolder {
             }
         }
         return true;
+    }
+
+    public boolean removeDeadCode(InstructionList instList) {
+        ControlFlowGraph flowGraph = new ControlFlowGraph(mgen);
+        boolean somethingWasOptimized = false;
+        for (InstructionHandle instHandle : instList.getInstructionHandles()) {
+            boolean isDead = false;
+            if (instHandle.getInstruction() instanceof GotoInstruction) {
+                InstructionHandle target = ((GotoInstruction)instHandle.getInstruction()).getTarget();
+                if (target.equals(instHandle.getNext())) {
+                    isDead = true;
+                }
+            }
+            if (flowGraph.isDead(instHandle)) {
+                isDead = true;
+            }
+            if (isDead) {
+                somethingWasOptimized = true;
+                System.out.print("Dead code: \033[0;31m");
+                System.out.print(instHandle);
+                System.out.println("\033[0m\n");
+                deleteInstruction(instHandle, instHandle.getNext(), instList);
+            }
+        }
+        return somethingWasOptimized;
     }
 
     public void deleteInstruction(InstructionHandle instHandle, InstructionHandle newTarget, InstructionList instList) {
