@@ -560,10 +560,6 @@ public class ConstantFolder {
         boolean somethingWasOptimized = false;
 
         for (InstructionHandle storeInstHandle : storeInstructions.keySet()) {
-            // System.out.println("Instruction: ");
-            // System.out.println(storeInstHandle);
-            // System.out.println("Dependencies: ");
-            // System.out.println(storeInstructions.get(storeInstHandle));
             somethingWasOptimized = optimizeStoreInstruction(storeInstHandle, instList, loadInstructions, storeInstructions) || somethingWasOptimized;
         }
 
@@ -590,18 +586,10 @@ public class ConstantFolder {
             InstructionHandle instHandle = context.getInstruction();
             Instruction instruction = instHandle.getInstruction();
 
-            // System.out.print("Instruction: ");
-            // System.out.println(instruction);
-
             if (instruction instanceof LoadInstruction ||
                 instruction instanceof IINC) {
                 int index = ((IndexedInstruction)instruction).getIndex();
-                // System.out.print("Found load instruction: ");
-                // System.out.println(instruction);
-                // System.out.println("Index: " + index);
-                // System.out.println("StoreInstIndex: " + storeInstructionIndex);
                 if (index == storeInstructionIndex) {
-                    // System.out.println("pushed");
                     loadInstructions.addDependency(instHandle, storeInstHandle);
                     storeInstructions.addDependency(storeInstHandle, instHandle);
                 }
@@ -610,14 +598,7 @@ public class ConstantFolder {
             if (instruction instanceof StoreInstruction ||
                 instruction instanceof IINC) {
                 int index = ((IndexedInstruction)instruction).getIndex();
-                // System.out.print("Found store instruction: ");
-                // System.out.println(instruction);
-                // System.out.println("Index: " + index);
-                // System.out.println("StoreInstIndex: " + storeInstructionIndex);
                 if (index == storeInstructionIndex) {
-                    // System.out.println("Found same index, stoppping");
-                    // System.out.println(storeInstHandle);
-                    // System.out.println(instruction);
                     break;
                 }
             }
@@ -638,9 +619,6 @@ public class ConstantFolder {
         Collection<InstructionHandle> loadDependencies = storeInstructions.get(storeInstHandle);
 
         if (storeInstruction instanceof IINC) {
-            // System.out.print("SKIPPING INCREMENT: ");
-            // System.out.print(storeInstHandle);
-            // System.out.println("\n");
             return false;
         } else if (!isConstantInstruction(storeInstHandle.getPrev()) ||
             storeInstHandle.hasTargeters()) {
@@ -650,9 +628,6 @@ public class ConstantFolder {
         if (!allLoadsCanBeOptimized(loadDependencies, loadInstructions)) {
             return false;
         }
-
-        // System.out.println("Optimizing store instruction:");
-        // System.out.println(storeInstHandle);
 
         InstructionHandle constantInstHandle = storeInstHandle.getPrev();
         Instruction constantInstruction = constantInstHandle.getInstruction().copy();
