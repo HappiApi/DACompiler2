@@ -49,28 +49,26 @@ import org.apache.bcel.verifier.structurals.InstructionContext;
 
 public class ConstantFolder {
 
-    ClassParser parser = null;
-
-    JavaClass original = null;
-    JavaClass optimized = null;
-
-    String reConstPushInstruction = "(BIPUSH|DCONST|FCONST|FCONST_2|ICONST|LCONST|SIPUSH|LDC|LDC2_W)"; // LDC_W is a subclass of LDC, so we don't need to include it
-    String reUnaryInstruction  = "(DNEG|FNEG|INEG|LNEG|" +
-                                  "I2L|I2F|I2D|L2I|L2F|L2D|F2I|F2L|F2D|D2I|D2L|D2F)";
-    String reBinaryInstruction = "(DADD|DDIV|DMUL|DREM|DSUB|" +
-                                  "FADD|FDIV|FMUL|FREM|FSUB|" +
-                                  "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
-                                  "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR|" +
-                                  "DCMPG|DCMPL|FCMPG|FCMPL|LCMP)";
-    String reUnaryComparison = "(IFEQ|IFGE|IFGT|IFLE|IFLT|IFNE)";
-    String reBinaryComparison = "(IF_ICMPEQ|IF_ICMPGE|IF_ICMPGT|IF_ICMPLE|IF_ICMPLT|IF_ICMPNE)";
+    ClassParser parser;
+    JavaClass original;
+    JavaClass optimized;
 
     ClassGen cgen;
     ConstantPoolGen cpgen;
-
     MethodGen mgen;
     CodeExceptionGen[] cegen;
     LocalVariableGen[] lvgen;
+
+    static final String reConstPushInstruction = "(BIPUSH|DCONST|FCONST|FCONST_2|ICONST|LCONST|SIPUSH|LDC|LDC2_W)"; // LDC_W is a subclass of LDC, so we don't need to include it
+    static final String reUnaryInstruction = "(DNEG|FNEG|INEG|LNEG|" +
+                                             "I2L|I2F|I2D|L2I|L2F|L2D|F2I|F2L|F2D|D2I|D2L|D2F)";
+    static final String reBinaryInstruction = "(DADD|DDIV|DMUL|DREM|DSUB|" +
+                                              "FADD|FDIV|FMUL|FREM|FSUB|" +
+                                              "IADD|IAND|IDIV|IMUL|IOR|IREM|ISHL|ISHR|ISUB|IUSHR|IXOR|" +
+                                              "LADD|LAND|LDIV|LMUL|LOR|LREM|LSHL|LSHR|LSUB|LUSHR|LXOR|" +
+                                              "DCMPG|DCMPL|FCMPG|FCMPL|LCMP)";
+    static final String reUnaryComparison = "(IFEQ|IFGE|IFGT|IFLE|IFLT|IFNE)";
+    static final String reBinaryComparison = "(IF_ICMPEQ|IF_ICMPGE|IF_ICMPGT|IF_ICMPLE|IF_ICMPLT|IF_ICMPNE)";
 
     public ConstantFolder(String classFilePath) {
         try {
