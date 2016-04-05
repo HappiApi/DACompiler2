@@ -492,9 +492,6 @@ public class ConstantFolder {
             }
             newInstruction = new PUSH(cpgen, value);
         } else if (opName.equals("fcmpg") || opName.equals("fcmpl")) {
-            System.out.println("\n\n\n\n");
-            System.out.println(operator);
-            System.out.println("\n\n\n\n");
             int value;
             if (Float.isNaN((float)a) || Float.isNaN((float)b)) {
                 value = opName.equals("fcmpg") ? 1 : -1;
