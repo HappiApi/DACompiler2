@@ -173,37 +173,37 @@ public class ConstantFolder {
         Object value = getConstValue(operand.getInstruction(), cpgen);
         Number number = (Number)value;
 
-        PUSH newInstruction;
+        Number result;
 
         // Negation
 
         if (opName.equals("ineg")) {
-            newInstruction = new PUSH(cpgen, -(int)value);
+            result = -(int)value;
         } else if (opName.equals("lneg")) {
-            newInstruction = new PUSH(cpgen, -(long)value);
+            result = -(long)value;
         } else if (opName.equals("fneg")) {
-            newInstruction = new PUSH(cpgen, -(float)value);
+            result = -(float)value;
         } else if (opName.equals("dneg")) {
-            newInstruction = new PUSH(cpgen, -(double)value);
+            result = -(double)value;
 
         // Type conversion
 
         } else if (opName.equals("l2i") ||
                    opName.equals("f2i") ||
                    opName.equals("d2i")) {
-            newInstruction = new PUSH(cpgen, number.intValue());
+            result = number.intValue();
         } else if (opName.equals("i2l") ||
                    opName.equals("f2l") ||
                    opName.equals("d2l")) {
-            newInstruction = new PUSH(cpgen, number.longValue());
+            result = number.longValue();
         } else if (opName.equals("i2f") ||
                    opName.equals("l2f") ||
                    opName.equals("d2f")) {
-            newInstruction = new PUSH(cpgen, number.floatValue());
+            result = number.floatValue();
         } else if (opName.equals("i2d") ||
                    opName.equals("l2d") ||
                    opName.equals("f2d")) {
-            newInstruction = new PUSH(cpgen, number.doubleValue());
+            result = number.doubleValue();
 
         } else {
             // reached when instruction is not handled
@@ -212,7 +212,7 @@ public class ConstantFolder {
             return false;
         }
 
-        InstructionHandle newInstHandle = instList.insert(operand, newInstruction);
+        InstructionHandle newInstHandle = instList.insert(operand, new PUSH(cpgen, result));
 
         System.out.print("Replacing: \033[0;31m");
         System.out.print(operand);
@@ -264,120 +264,114 @@ public class ConstantFolder {
         Object a = getConstValue(operand1.getInstruction(), cpgen);
         Object b = getConstValue(operand2.getInstruction(), cpgen);
 
-        PUSH newInstruction;
+        Number result;
 
         // Integer operations
 
         if (opName.equals("iadd")) {
-            newInstruction = new PUSH(cpgen, (int)a + (int)b);
+            result = (int)a + (int)b;
         } else if (opName.equals("isub")) {
-            newInstruction = new PUSH(cpgen, (int)a - (int)b);
+            result = (int)a - (int)b;
         } else if (opName.equals("imul")) {
-            newInstruction = new PUSH(cpgen, (int)a * (int)b);
+            result = (int)a * (int)b;
         } else if (opName.equals("idiv")) {
-            newInstruction = new PUSH(cpgen, (int)a / (int)b);
+            result = (int)a / (int)b;
         } else if (opName.equals("irem")) {
-            newInstruction = new PUSH(cpgen, (int)a % (int)b);
+            result = (int)a % (int)b;
         } else if (opName.equals("iand")) {
-            newInstruction = new PUSH(cpgen, (int)a & (int)b);
+            result = (int)a & (int)b;
         } else if (opName.equals("ior")) {
-            newInstruction = new PUSH(cpgen, (int)a | (int)b);
+            result = (int)a | (int)b;
         } else if (opName.equals("ixor")) {
-            newInstruction = new PUSH(cpgen, (int)a ^ (int)b);
+            result = (int)a ^ (int)b;
         } else if (opName.equals("ishl")) {
-            newInstruction = new PUSH(cpgen, (int)a << (int)b);
+            result = (int)a << (int)b;
         } else if (opName.equals("ishr")) {
-            newInstruction = new PUSH(cpgen, (int)a >> (int)b);
+            result = (int)a >> (int)b;
         } else if (opName.equals("iushr")) {
-            newInstruction = new PUSH(cpgen, (int)a >>> (int)b);
+            result = (int)a >>> (int)b;
 
         // Long operations
 
         } else if (opName.equals("ladd")) {
-            newInstruction = new PUSH(cpgen, (long)a + (long)b);
+            result = (long)a + (long)b;
         } else if (opName.equals("lsub")) {
-            newInstruction = new PUSH(cpgen, (long)a - (long)b);
+            result = (long)a - (long)b;
         } else if (opName.equals("lmul")) {
-            newInstruction = new PUSH(cpgen, (long)a * (long)b);
+            result = (long)a * (long)b;
         } else if (opName.equals("ldiv")) {
-            newInstruction = new PUSH(cpgen, (long)a / (long)b);
+            result = (long)a / (long)b;
         } else if (opName.equals("lrem")) {
-            newInstruction = new PUSH(cpgen, (long)a % (long)b);
+            result = (long)a % (long)b;
         } else if (opName.equals("land")) {
-            newInstruction = new PUSH(cpgen, (long)a & (long)b);
+            result = (long)a & (long)b;
         } else if (opName.equals("lor")) {
-            newInstruction = new PUSH(cpgen, (long)a | (long)b);
+            result = (long)a | (long)b;
         } else if (opName.equals("lxor")) {
-            newInstruction = new PUSH(cpgen, (long)a ^ (long)b);
+            result = (long)a ^ (long)b;
         } else if (opName.equals("lshl")) {
-            newInstruction = new PUSH(cpgen, (long)a << (long)b);
+            result = (long)a << (long)b;
         } else if (opName.equals("lshr")) {
-            newInstruction = new PUSH(cpgen, (long)a >> (long)b);
+            result = (long)a >> (long)b;
         } else if (opName.equals("lushr")) {
-            newInstruction = new PUSH(cpgen, (long)a >>> (long)b);
+            result = (long)a >>> (long)b;
 
         // Float operations
 
         } else if (opName.equals("fadd")) {
-            newInstruction = new PUSH(cpgen, (float)a + (float)b);
+            result = (float)a + (float)b;
         } else if (opName.equals("fsub")) {
-            newInstruction = new PUSH(cpgen, (float)a - (float)b);
+            result = (float)a - (float)b;
         } else if (opName.equals("fmul")) {
-            newInstruction = new PUSH(cpgen, (float)a * (float)b);
+            result = (float)a * (float)b;
         } else if (opName.equals("fdiv")) {
-            newInstruction = new PUSH(cpgen, (float)a / (float)b);
+            result = (float)a / (float)b;
         } else if (opName.equals("frem")) {
-            newInstruction = new PUSH(cpgen, (float)a % (float)b);
+            result = (float)a % (float)b;
 
         // Double operations
 
         } else if (opName.equals("dadd")) {
-            newInstruction = new PUSH(cpgen, (double)a + (double)b);
+            result = (double)a + (double)b;
         } else if (opName.equals("dsub")) {
-            newInstruction = new PUSH(cpgen, (double)a - (double)b);
+            result = (double)a - (double)b;
         } else if (opName.equals("dmul")) {
-            newInstruction = new PUSH(cpgen, (double)a * (double)b);
+            result = (double)a * (double)b;
         } else if (opName.equals("ddiv")) {
-            newInstruction = new PUSH(cpgen, (double)a / (double)b);
+            result = (double)a / (double)b;
         } else if (opName.equals("drem")) {
-            newInstruction = new PUSH(cpgen, (double)a % (double)b);
+            result = (double)a % (double)b;
 
         // Comparisons
 
         } else if (opName.equals("lcmp")) {
-            int value;
             if ((long)a > (long)b) {
-                value = 1;
+                result = 1;
             } else if ((long)a == (long)b) {
-                value = 0;
+                result = 0;
             } else {
-                value = -1;
+                result = -1;
             }
-            newInstruction = new PUSH(cpgen, value);
         } else if (opName.equals("fcmpg") || opName.equals("fcmpl")) {
-            int value;
             if (Float.isNaN((float)a) || Float.isNaN((float)b)) {
-                value = opName.equals("fcmpg") ? 1 : -1;
+                result = opName.equals("fcmpg") ? 1 : -1;
             } else if ((float)a > (float)b) {
-                value = 1;
+                result = 1;
             } else if ((float)a == (float)b) {
-                value = 0;
+                result = 0;
             } else {
-                value = -1;
+                result = -1;
             }
-            newInstruction = new PUSH(cpgen, value);
         } else if (opName.equals("dcmpg") || opName.equals("dcmpl")) {
-            int value;
             if (Double.isNaN((double)a) || Double.isNaN((double)b)) {
-                value = opName.equals("dcmpg") ? 1 : -1;
+                result = opName.equals("dcmpg") ? 1 : -1;
             } else if ((double)a > (double)b) {
-                value = 1;
+                result = 1;
             } else if ((double)a == (double)b) {
-                value = 0;
+                result = 0;
             } else {
-                value = -1;
+                result = -1;
             }
-            newInstruction = new PUSH(cpgen, value);
 
         } else {
             // reached when instruction is not handled
@@ -386,7 +380,7 @@ public class ConstantFolder {
             return false;
         }
 
-        InstructionHandle newInstHandle = instList.insert(operand1, newInstruction);
+        InstructionHandle newInstHandle = instList.insert(operand1, new PUSH(cpgen, result));
 
         System.out.print("Replacing: \033[0;31m");
         System.out.print(operand1);
