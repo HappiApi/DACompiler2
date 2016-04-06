@@ -16,13 +16,11 @@ import org.apache.bcel.generic.LDC;
 import org.apache.bcel.generic.LocalVariableGen;
 import org.apache.bcel.generic.LocalVariableInstruction;
 
-public class DependencyMap {
+public class ReachingMap {
 
-    InstructionList instList;
     LinkedHashMap<InstructionHandle, Collection<InstructionHandle>> instructionMap;
 
-    public DependencyMap(InstructionList instList) {
-        this.instList = instList;
+    public ReachingMap() {
         this.instructionMap = new LinkedHashMap<InstructionHandle, Collection<InstructionHandle>>();
     }
 
@@ -32,7 +30,7 @@ public class DependencyMap {
         }
     }
 
-    public void addDependency(InstructionHandle key, InstructionHandle value) {
+    public void addReaching(InstructionHandle key, InstructionHandle value) {
         addKey(key);
         instructionMap.get(key).add(value);
     }

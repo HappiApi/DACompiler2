@@ -39,7 +39,10 @@ public class DynamicVariableFolding {
 
     public int methodFive() {
         int i;
+        int j;
         for (i = 0; i < 3; i += 5) {
+            j = 6;
+            j++;
         }
         return i;
     }
