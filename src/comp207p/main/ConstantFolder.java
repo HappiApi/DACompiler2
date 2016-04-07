@@ -453,7 +453,7 @@ public class ConstantFolder {
             BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
             newTarget = gotoInstHandle;
 
-            System.out.print("Adding: \033[0;32m");
+            System.out.print("Adding:    \033[0;32m");
             System.out.print(gotoInstHandle);
             System.out.println("\033[0m");
         } else {
@@ -526,7 +526,7 @@ public class ConstantFolder {
             BranchHandle gotoInstHandle = instList.insert(handles[0], gotoInstruction);
             newTarget = gotoInstHandle;
 
-            System.out.print("Adding: \033[0;32m");
+            System.out.print("Adding:    \033[0;32m");
             System.out.print(gotoInstHandle);
             System.out.println("\033[0m");
         } else {
